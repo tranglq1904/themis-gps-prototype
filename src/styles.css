@@ -671,6 +671,197 @@ th {
   background: linear-gradient(90deg, var(--primary), var(--primary-2));
 }
 
+.org-summary {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.org-summary div {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fbfcfd;
+  padding: 12px;
+}
+
+.org-summary strong {
+  display: block;
+  font-size: 26px;
+  color: var(--primary);
+}
+
+.org-summary span {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.org-chart {
+  display: grid;
+  gap: 18px;
+}
+
+.org-chart-root {
+  position: relative;
+  display: grid;
+  justify-items: center;
+  gap: 16px;
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: linear-gradient(180deg, #ffffff, #f8fbfb);
+  overflow: auto;
+}
+
+.org-stage {
+  justify-self: center;
+  min-height: 24px;
+  border-radius: 999px;
+  padding: 4px 10px;
+  background: #e8f0f2;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.org-chart-branches {
+  position: relative;
+  width: 100%;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 18px;
+  padding-top: 28px;
+}
+
+.org-chart-branches::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 50%;
+  width: 2px;
+  height: 28px;
+  background: var(--line);
+}
+
+.org-chart-branch {
+  position: relative;
+  display: grid;
+  justify-items: stretch;
+  gap: 12px;
+}
+
+.org-chart-branch::before {
+  content: "";
+  position: absolute;
+  top: -28px;
+  left: 50%;
+  width: 2px;
+  height: 28px;
+  background: var(--line);
+}
+
+.org-chart-leaves {
+  position: relative;
+  display: grid;
+  gap: 10px;
+  padding-top: 18px;
+  margin-top: 2px;
+}
+
+.org-chart-leaves::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 50%;
+  width: 2px;
+  height: 18px;
+  background: var(--line);
+}
+
+.org-chart-leaf {
+  position: relative;
+  display: grid;
+  gap: 8px;
+}
+
+.org-chart-leaf::before {
+  content: "";
+  position: absolute;
+  top: -10px;
+  left: 50%;
+  width: 2px;
+  height: 10px;
+  background: var(--line);
+}
+
+.org-chart-card {
+  width: min(100%, 520px);
+  min-height: 178px;
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  gap: 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #ffffff;
+  box-shadow: var(--shadow);
+  padding: 13px;
+}
+
+.org-chart-card.tw {
+  border-top: 5px solid var(--primary);
+}
+
+.org-chart-card.province {
+  border-top: 5px solid var(--info);
+}
+
+.org-chart-card.ward {
+  border-top: 5px solid var(--ok);
+  min-height: 154px;
+}
+
+.org-card-top {
+  display: grid;
+  gap: 6px;
+}
+
+.org-card-top strong {
+  font-size: 16px;
+}
+
+.org-card-top small {
+  color: var(--muted);
+}
+
+.org-card-details {
+  display: grid;
+  gap: 6px;
+}
+
+.org-card-details div {
+  display: grid;
+  grid-template-columns: 110px 1fr;
+  gap: 10px;
+  font-size: 13px;
+}
+
+.org-card-details span {
+  color: var(--muted);
+}
+
+.org-card-details b {
+  font-weight: 700;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.org-card-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
 .org-card {
   display: grid;
   gap: 7px;
@@ -770,14 +961,14 @@ th {
 
 .department-board {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
   gap: 14px;
   align-items: stretch;
 }
 
 .department-card {
   min-width: 0;
-  min-height: 320px;
+  min-height: 300px;
   border: 1px solid var(--line);
   border-radius: 8px;
   background: #ffffff;
@@ -799,6 +990,7 @@ th {
 .department-card-head strong {
   display: block;
   margin-top: 8px;
+  min-height: 38px;
 }
 
 .department-card-head p {
@@ -1033,7 +1225,8 @@ th {
   .grid.cols-3,
   .grid.cols-2,
   .map-layout,
-  .department-board {
+  .department-board,
+  .org-summary {
     grid-template-columns: 1fr;
   }
 
@@ -1094,6 +1287,27 @@ th {
   }
 
   .row-actions .btn {
+    flex: 1;
+  }
+
+  .org-chart-root {
+    padding: 12px;
+  }
+
+  .org-chart-branches {
+    grid-template-columns: 1fr;
+  }
+
+  .org-card-details div {
+    grid-template-columns: 1fr;
+    gap: 2px;
+  }
+
+  .org-card-actions {
+    justify-content: stretch;
+  }
+
+  .org-card-actions .btn {
     flex: 1;
   }
 }

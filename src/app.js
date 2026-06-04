@@ -425,10 +425,59 @@ function orgStructure() {
       <button class="btn" onclick="openModal('departmentForm')">Thêm phòng nghiệp vụ</button>
       <button class="btn" onclick="openModal('wardUnitForm')">Thêm đơn vị cấp xã</button>
     </div>
-    <div class="org-tree classic">
-      ${roots.map(orgClassicRoot).join("")}
+    <div class="org-summary">
+      <div><strong>${roots.length}</strong><span>Đơn vị chỉ đạo nghiệp vụ cấp TW</span></div>
+      <div><strong>${orgCatalog.filter((item) => item.type === "Phòng nghiệp vụ").length}</strong><span>Phòng nghiệp vụ cấp tỉnh</span></div>
+      <div><strong>${orgCatalog.filter((item) => item.type === "Đơn vị cấp cơ sở").length}</strong><span>Đơn vị cấp xã trực thuộc</span></div>
+    </div>
+    <div class="org-chart">
+      ${roots.map(orgChartRoot).join("")}
     </div>
   `;
+}
+
+function orgChartRoot(root) {
+  const departmentsInRoot = orgCatalog.filter((item) => item.type === "Phòng nghiệp vụ" && item.directorate === root.directorate);
+  return `<section class="org-chart-root">
+    <div class="org-stage">Cấp TW</div>
+    ${orgChartCard(root, "tw")}
+    <div class="org-chart-branches">
+      ${departmentsInRoot.map((department) => {
+        const wardUnits = orgCatalog.filter((item) => item.type === "Đơn vị cấp cơ sở" && item.directorate === department.directorate && item.province === department.province && item.department === department.department);
+        return `<div class="org-chart-branch">
+          <div class="org-stage">Cấp tỉnh</div>
+          ${orgChartCard(department, "province")}
+          <div class="org-chart-leaves">
+            ${wardUnits.map((wardUnit) => `<div class="org-chart-leaf"><div class="org-stage">Cấp xã</div>${orgChartCard(wardUnit, "ward")}</div>`).join("")}
+          </div>
+        </div>`;
+      }).join("")}
+    </div>
+  </section>`;
+}
+
+function orgChartCard(item, variant) {
+  const details = [
+    ["Đơn vị chỉ đạo", item.directorate],
+    ["Tỉnh", item.province],
+    ["Phòng nghiệp vụ", item.department],
+    ["Xã", item.ward],
+    ["Cán bộ quản lý", item.manager]
+  ].filter((row) => row[1] && row[1] !== "-");
+  return `<article class="org-chart-card ${variant}">
+    <div class="org-card-top">
+      <span class="tag ${variant === "tw" ? "active" : variant === "province" ? "info" : "ok"}">${item.type}</span>
+      <strong>${item.name}</strong>
+      <small>${item.level}</small>
+    </div>
+    <div class="org-card-details">
+      ${details.map(([label, value]) => `<div><span>${label}</span><b>${value}</b></div>`).join("")}
+    </div>
+    <div class="org-card-actions">
+      <button class="btn" onclick="openModal('orgAccounts',{name:'${item.name}'})">Tài khoản</button>
+      <button class="btn" onclick="openModal('unitTypeForm',{name:'${item.name}',type:'${item.type}'})">Sửa</button>
+    </div>
+  </article>`;
 }
 
 function orgClassicRoot(root) {
@@ -499,7 +548,7 @@ function orgNode(item, level) {
 
 function orgTab(tab) {
   if (tab === "departments") {
-    return `<div class="department-board">${orgCatalog.map((item) => departmentAccounts(item)).join("")}</div>`;
+    return `<div class="department-board">${orgCatalog.filter((item) => item.type !== "Đơn vị chỉ đạo nghiệp vụ").map((item) => departmentAccounts(item)).join("")}</div>`;
   }
   if (tab === "staff") return tableUsers(users, { compact: true });
   return `<div class="list"><div class="list-item"><strong>Dữ liệu mặc định theo cơ cấu</strong>Cán bộ chỉ xem dữ liệu thuộc đơn vị chỉ đạo nghiệp vụ, phòng nghiệp vụ hoặc đơn vị cấp xã được gán.</div><div class="list-item"><strong>Liên thông dữ liệu</strong><span class="tag info">Hà Nội ↔ Đà Nẵng</span> được cấp cho chuyên án CA-2026-011 đến 30/06/2026.</div><button class="btn primary" onclick="openModal('dataBridge')">Cấp quyền liên thông</button></div>`;
