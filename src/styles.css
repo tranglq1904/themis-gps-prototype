@@ -549,6 +549,43 @@ th {
   gap: 8px;
 }
 
+.permission-board {
+  display: grid;
+  gap: 12px;
+}
+
+.permission-section {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fbfcfd;
+  padding: 12px;
+}
+
+.permission-section-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.permission-section-head strong {
+  display: block;
+  font-size: 15px;
+}
+
+.permission-section-head p {
+  color: var(--muted);
+  margin: 4px 0 0;
+  font-size: 13px;
+}
+
+.permission-list {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(180px, 1fr));
+  gap: 8px;
+}
+
 .check-tile {
   min-height: 44px;
   border: 1px solid var(--line);
@@ -558,6 +595,98 @@ th {
   display: flex;
   align-items: center;
   gap: 7px;
+}
+
+.role-card {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 14px;
+  background: #ffffff;
+  box-shadow: var(--shadow);
+}
+
+.role-card-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.role-card p {
+  color: var(--muted);
+  min-height: 38px;
+  margin: 8px 0 12px;
+}
+
+.permission-progress {
+  height: 8px;
+  border-radius: 999px;
+  overflow: hidden;
+  background: #e6eef2;
+  margin-bottom: 8px;
+}
+
+.permission-progress span {
+  display: block;
+  height: 100%;
+  background: linear-gradient(90deg, var(--primary), var(--primary-2));
+}
+
+.org-card {
+  display: grid;
+  gap: 7px;
+}
+
+.org-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.org-meta span {
+  min-height: 24px;
+  border-radius: 999px;
+  background: #edf3f5;
+  color: var(--muted);
+  padding: 4px 8px;
+  font-size: 12px;
+}
+
+.staff-cell,
+.account-hero {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.account-hero {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 12px;
+  background: #fbfcfd;
+}
+
+.account-hero p {
+  margin: 4px 0 8px;
+  color: var(--muted);
+}
+
+.avatar {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: #dcecef;
+  color: var(--primary);
+  display: inline-grid;
+  place-items: center;
+  font-weight: 800;
+  flex: 0 0 auto;
+}
+
+.avatar.large {
+  width: 58px;
+  height: 58px;
+  font-size: 18px;
 }
 
 .modal-backdrop {
@@ -710,7 +839,8 @@ th {
   }
 
   .form-grid,
-  .permission-grid {
+  .permission-grid,
+  .permission-list {
     grid-template-columns: 1fr;
   }
 }

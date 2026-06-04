@@ -9,7 +9,7 @@ const state = {
   splitMap: false,
   tick: 0,
   tabs: {
-    org: "tree",
+    org: "structure",
     rbac: "roles",
     account: "users",
     settings: "profile"
@@ -23,7 +23,7 @@ const nav = [
   ["devices", "Thiết bị", "●"],
   ["alerts", "Cảnh báo", "!"],
   ["areas", "Khu vực giám sát", "⬡"],
-  ["org", "Đơn vị làm việc", "┬"],
+  ["org", "Cơ cấu tổ chức", "┬"],
   ["rbac", "Vai trò & phân quyền", "☷"],
   ["accounts", "Tài khoản", "♙"],
   ["reports", "Báo cáo", "▤"],
@@ -49,6 +49,67 @@ const permissions = {
   "Quản lý cấp Xã": ["account", "case", "device", "alert"],
   "Cán bộ cấp Xã": ["view", "device", "alert"]
 };
+
+const permissionModules = [
+  {
+    name: "Theo dõi trên bản đồ",
+    description: "Quản lý quyền xem live tracking, lịch sử di chuyển và xuất báo cáo theo dõi.",
+    features: ["Theo dõi trực tiếp vị trí thiết bị", "Theo dõi lịch sử di chuyển", "Xuất báo cáo theo dõi"]
+  },
+  {
+    name: "Quản lý thiết bị",
+    description: "Vận hành vòng đời thiết bị từ nhập kho đến phân bổ và điều khiển từ xa.",
+    features: ["Thêm thiết bị", "Import danh sách thiết bị từ file CSV", "Xem thông tin thiết bị", "Chỉnh sửa thông tin thiết bị", "Xóa thiết bị", "Tạo yêu cầu bảo trì thiết bị", "Phân bổ thiết bị cho đơn vị hoặc chuyên án", "Xuất báo cáo thiết bị", "Gửi lệnh điều khiển thiết bị từ xa"]
+  },
+  {
+    name: "Quản lý chuyên án",
+    description: "Thiết lập chuyên án, cập nhật hồ sơ, gán nhãn đối tượng và xuất báo cáo.",
+    features: ["Thêm mới chuyên án", "Xem thông tin chuyên án", "Chỉnh sửa chuyên án", "Xóa chuyên án", "Gán nhãn đối tượng", "Xuất báo cáo chuyên án"]
+  },
+  {
+    name: "Khoanh vùng khu vực",
+    description: "Quản lý khu vực giám sát để phục vụ cảnh báo vào/ra vùng.",
+    features: ["Thêm mới khu vực giám sát", "Xem thông tin khu vực", "Chỉnh sửa khu vực", "Xóa khu vực"]
+  },
+  {
+    name: "Quản lý cán bộ",
+    description: "Quản lý tài khoản cán bộ, hồ sơ, trạng thái và điều chuyển công tác.",
+    features: ["Tạo mới tài khoản cán bộ", "Xem thông tin cán bộ", "Chỉnh sửa thông tin cán bộ", "Xóa tài khoản cán bộ"]
+  },
+  {
+    name: "Vai trò và phân quyền",
+    description: "Tạo vai trò và cấu hình các chức năng được phép sử dụng.",
+    features: ["Thêm mới vai trò", "Xem thông tin vai trò", "Chỉnh sửa vai trò", "Xóa vai trò", "Cấu hình quyền cho vai trò"]
+  },
+  {
+    name: "Đơn vị làm việc",
+    description: "Thiết lập cơ cấu đơn vị, thêm tài khoản vào đơn vị và quản lý thông tin tổ chức.",
+    features: ["Thêm mới đơn vị", "Xem thông tin đơn vị", "Chỉnh sửa thông tin đơn vị", "Xóa đơn vị", "Thêm tài khoản theo từng đơn vị"]
+  }
+];
+
+const directorates = ["Cục Kỹ thuật nghiệp vụ", "Cục Điều phối giám sát"];
+const provinces = ["Hà Nội", "Đà Nẵng", "TP Hồ Chí Minh"];
+const departments = ["Phòng Theo dõi thiết bị", "Phòng Phân tích dữ liệu", "Phòng Quản lý chuyên án"];
+const wards = ["Xã Đông Anh", "Xã Sóc Sơn", "Xã Hòa Vang", "Xã Củ Chi"];
+
+const roleProfiles = [
+  { name: "Admin", scope: "Toàn hệ thống", users: 1, enabled: 31 },
+  { name: "Quản lý cấp Cục", scope: "Đơn vị chỉ đạo nghiệp vụ và cấp dưới", users: 2, enabled: 28 },
+  { name: "Cán bộ cấp Cục", scope: "Đơn vị chỉ đạo nghiệp vụ", users: 4, enabled: 16 },
+  { name: "Quản lý cấp Tỉnh", scope: "Phòng nghiệp vụ và đơn vị cấp xã trực thuộc", users: 6, enabled: 22 },
+  { name: "Cán bộ cấp Tỉnh", scope: "Phòng nghiệp vụ được phân công", users: 9, enabled: 13 },
+  { name: "Quản lý cấp Xã", scope: "Đơn vị cấp cơ sở", users: 5, enabled: 15 },
+  { name: "Cán bộ cấp Xã", scope: "Nhiệm vụ được giao", users: 18, enabled: 8 }
+];
+
+const orgCatalog = [
+  { type: "Đơn vị chỉ đạo nghiệp vụ", level: "Cấp TW", name: "Cục Kỹ thuật nghiệp vụ", directorate: "Cục Kỹ thuật nghiệp vụ", province: "Toàn quốc", department: "Ban chỉ đạo", ward: "-", manager: "Nguyễn Văn An", accounts: ["CB001", "CB005"] },
+  { type: "Phòng nghiệp vụ", level: "Cấp tỉnh", name: "Phòng Theo dõi thiết bị Hà Nội", directorate: "Cục Kỹ thuật nghiệp vụ", province: "Hà Nội", department: "Phòng Theo dõi thiết bị", ward: "-", manager: "Trần Minh Đức", accounts: ["CB002", "CB004"] },
+  { type: "Phòng nghiệp vụ", level: "Cấp tỉnh", name: "Phòng Phân tích dữ liệu Đà Nẵng", directorate: "Cục Kỹ thuật nghiệp vụ", province: "Đà Nẵng", department: "Phòng Phân tích dữ liệu", ward: "-", manager: "Hoàng Anh Tuấn", accounts: ["CB006"] },
+  { type: "Đơn vị cấp cơ sở", level: "Cấp xã", name: "Tổ giám sát xã Đông Anh", directorate: "Cục Kỹ thuật nghiệp vụ", province: "Hà Nội", department: "Phòng Theo dõi thiết bị", ward: "Xã Đông Anh", manager: "Phạm Quang Huy", accounts: ["CB003"] },
+  { type: "Đơn vị cấp cơ sở", level: "Cấp xã", name: "Tổ giám sát xã Hòa Vang", directorate: "Cục Kỹ thuật nghiệp vụ", province: "Đà Nẵng", department: "Phòng Phân tích dữ liệu", ward: "Xã Hòa Vang", manager: "Võ Thanh Bình", accounts: ["CB007"] }
+];
 
 const org = [
   {
@@ -106,10 +167,13 @@ const alerts = [
 ];
 
 const users = [
-  { name: "Nguyễn Văn An", phone: "0912 345 111", email: "an.nguyen@themis.vn", unit: "Cục Kỹ thuật nghiệp vụ", room: "Phòng Điều phối", role: "Quản lý cấp Cục", status: "Hoạt động" },
-  { name: "Trần Minh Đức", phone: "0912 345 222", email: "duc.tran@themis.vn", unit: "Công an TP Hà Nội", room: "Đội Theo dõi", role: "Quản lý cấp Tỉnh", status: "Hoạt động" },
-  { name: "Phạm Quang Huy", phone: "0912 345 333", email: "huy.pham@themis.vn", unit: "Công an xã Đông Anh", room: "Tổ Địa bàn", role: "Quản lý cấp Xã", status: "Hoạt động" },
-  { name: "Lê Thu Hà", phone: "0912 345 444", email: "ha.le@themis.vn", unit: "Công an TP Hà Nội", room: "Đội Kỹ thuật", role: "Cán bộ cấp Tỉnh", status: "Khóa" }
+  { staffId: "CB001", name: "Nguyễn Văn An", avatar: "NA", phone: "0912 345 111", email: "an.nguyen@themis.vn", role: "Quản lý cấp Cục", directorate: "Cục Kỹ thuật nghiệp vụ", province: "", department: "", ward: "", unit: "Cục Kỹ thuật nghiệp vụ", room: "Ban chỉ đạo", status: "Hoạt động", casesFollowing: ["CA-2026-017", "CA-2026-021"] },
+  { staffId: "CB002", name: "Trần Minh Đức", avatar: "TD", phone: "0912 345 222", email: "duc.tran@themis.vn", role: "Quản lý cấp Tỉnh", directorate: "Cục Kỹ thuật nghiệp vụ", province: "Hà Nội", department: "Phòng Theo dõi thiết bị", ward: "", unit: "Phòng Theo dõi thiết bị Hà Nội", room: "Phòng Theo dõi thiết bị", status: "Hoạt động", casesFollowing: ["CA-2026-017"] },
+  { staffId: "CB003", name: "Phạm Quang Huy", avatar: "PH", phone: "0912 345 333", email: "huy.pham@themis.vn", role: "Quản lý cấp Xã", directorate: "Cục Kỹ thuật nghiệp vụ", province: "Hà Nội", department: "Phòng Theo dõi thiết bị", ward: "Xã Đông Anh", unit: "Tổ giám sát xã Đông Anh", room: "Tổ Địa bàn", status: "Hoạt động", casesFollowing: ["CA-2026-017"] },
+  { staffId: "CB004", name: "Lê Thu Hà", avatar: "LH", phone: "0912 345 444", email: "ha.le@themis.vn", role: "Cán bộ cấp Tỉnh", directorate: "Cục Kỹ thuật nghiệp vụ", province: "Hà Nội", department: "Phòng Theo dõi thiết bị", ward: "", unit: "Phòng Theo dõi thiết bị Hà Nội", room: "Đội Kỹ thuật", status: "Khóa", casesFollowing: ["CA-2026-011"] },
+  { staffId: "CB005", name: "Đỗ Minh Khôi", avatar: "DK", phone: "0912 345 555", email: "khoi.do@themis.vn", role: "Cán bộ cấp Cục", directorate: "Cục Kỹ thuật nghiệp vụ", province: "", department: "", ward: "", unit: "Cục Kỹ thuật nghiệp vụ", room: "Phòng Quản trị hệ thống", status: "Hoạt động", casesFollowing: ["CA-2026-017", "CA-2026-011"] },
+  { staffId: "CB006", name: "Hoàng Anh Tuấn", avatar: "HT", phone: "0912 345 666", email: "tuan.hoang@themis.vn", role: "Quản lý cấp Tỉnh", directorate: "Cục Kỹ thuật nghiệp vụ", province: "Đà Nẵng", department: "Phòng Phân tích dữ liệu", ward: "", unit: "Phòng Phân tích dữ liệu Đà Nẵng", room: "Đội Chuyên án", status: "Hoạt động", casesFollowing: ["CA-2026-011"] },
+  { staffId: "CB007", name: "Võ Thanh Bình", avatar: "VB", phone: "0912 345 777", email: "binh.vo@themis.vn", role: "Quản lý cấp Xã", directorate: "Cục Kỹ thuật nghiệp vụ", province: "Đà Nẵng", department: "Phòng Phân tích dữ liệu", ward: "Xã Hòa Vang", unit: "Tổ giám sát xã Hòa Vang", room: "Tổ Theo dõi", status: "Hoạt động", casesFollowing: ["CA-2026-021"] }
 ];
 
 const areas = [
@@ -345,45 +409,73 @@ function areasView() {
 
 function orgView() {
   const tab = state.tabs.org;
-  return layout("Quản lý đơn vị làm việc", "Cây tổ chức Admin → Cục → Tỉnh → Xã, phòng nghiệp vụ, cán bộ và phạm vi dữ liệu", `
+  return layout("Cơ cấu tổ chức", "Quản lý Đơn vị chỉ đạo nghiệp vụ, Phòng nghiệp vụ cấp tỉnh và Đơn vị cấp cơ sở cấp xã", `
     <div class="panel">
-      <div class="panel-head"><div class="tabs">${["tree:Cây tổ chức", "rooms:Phòng nghiệp vụ", "staff:Cán bộ", "scope:Phạm vi dữ liệu"].map(tabButton("org")).join("")}</div><button class="btn primary" onclick="openModal('unitForm')">${can("unit") || can("unit_child") ? "Tạo đơn vị trực thuộc" : "Yêu cầu quyền tạo"}</button></div>
-      <div class="panel-body">${tab === "tree" ? orgTree(org) : orgTab(tab)}</div>
+      <div class="panel-head"><div class="tabs">${["structure:Cơ cấu tổ chức", "departments:Bộ phận nghiệp vụ", "staff:Danh sách tài khoản", "scope:Phạm vi dữ liệu"].map(tabButton("org")).join("")}</div><button class="btn primary" onclick="openModal('unitTypeForm')">Thêm mới cơ cấu</button></div>
+      <div class="panel-body">${tab === "structure" ? orgStructure() : orgTab(tab)}</div>
     </div>
   `);
 }
 
-function orgTree(nodes) {
-  return `<div class="org-tree">${nodes.map((n) => `<div class="org-node"><div class="org-row"><div><strong>${n.name}</strong><br><span class="muted">${n.level} • ${n.code} • Quản lý: ${n.manager}</span></div><button class="btn" onclick="openModal('unitForm',{name:'${n.name}'})">Cập nhật</button></div>${n.children ? orgTree(n.children) : ""}</div>`).join("")}</div>`;
+function orgStructure() {
+  const grouped = ["Đơn vị chỉ đạo nghiệp vụ", "Phòng nghiệp vụ", "Đơn vị cấp cơ sở"];
+  return `
+    <div class="toolbar" style="margin-bottom:12px">
+      <button class="btn primary" onclick="openModal('directorateForm')">Thêm đơn vị chỉ đạo nghiệp vụ</button>
+      <button class="btn" onclick="openModal('departmentForm')">Thêm phòng nghiệp vụ</button>
+      <button class="btn" onclick="openModal('wardUnitForm')">Thêm đơn vị cấp xã</button>
+    </div>
+    <div class="grid cols-3">
+      ${grouped.map((type) => `<div class="panel"><div class="panel-head"><h2>${type}</h2><span class="tag info">${orgCatalog.filter((o) => o.type === type).length}</span></div><div class="panel-body list">${orgCatalog.filter((o) => o.type === type).map(orgCard).join("")}</div></div>`).join("")}
+    </div>
+  `;
+}
+
+function orgCard(item) {
+  return `<div class="list-item org-card">
+    <strong>${item.name}</strong>
+    <span class="muted">${item.level} • Quản lý: ${item.manager}</span>
+    <div class="org-meta">
+      <span>${item.directorate}</span>
+      <span>${item.province}</span>
+      <span>${item.department}</span>
+      <span>${item.ward}</span>
+    </div>
+    <div class="toolbar" style="margin-top:10px">
+      <button class="btn" onclick="openModal('orgAccounts',{name:'${item.name}'})">Tài khoản</button>
+      <button class="btn" onclick="openModal('unitTypeForm',{name:'${item.name}',type:'${item.type}'})">Sửa</button>
+    </div>
+  </div>`;
 }
 
 function orgTab(tab) {
-  if (tab === "rooms") return `<div class="grid cols-3">${org.flatMap((d) => [d, ...d.children, ...d.children.flatMap((c) => c.children || [])]).map((u) => `<div class="list-item"><strong>${u.name}</strong>${u.rooms.map((r) => `<div class="tag info" style="margin:5px 5px 0 0">${r}</div>`).join("")}</div>`).join("")}</div>`;
-  if (tab === "staff") return tableUsers(users);
-  return `<div class="list"><div class="list-item"><strong>Dữ liệu mặc định theo đơn vị</strong>Cán bộ chỉ xem dữ liệu thuộc đơn vị và phòng nghiệp vụ được gán.</div><div class="list-item"><strong>Liên thông dữ liệu</strong><span class="tag info">Hà Nội ↔ Đà Nẵng</span> được cấp cho chuyên án CA-2026-011 đến 30/06/2026.</div><button class="btn primary" onclick="openModal('dataBridge')">Cấp quyền liên thông</button></div>`;
+  if (tab === "departments") {
+    return `<div class="grid cols-2">${orgCatalog.map((item) => `<div class="panel"><div class="panel-head"><h2>${item.name}</h2><span class="tag info">${item.type}</span></div><div class="panel-body">${departmentAccounts(item)}</div></div>`).join("")}</div>`;
+  }
+  if (tab === "staff") return tableUsers(users, { compact: true });
+  return `<div class="list"><div class="list-item"><strong>Dữ liệu mặc định theo cơ cấu</strong>Cán bộ chỉ xem dữ liệu thuộc đơn vị chỉ đạo nghiệp vụ, phòng nghiệp vụ hoặc đơn vị cấp xã được gán.</div><div class="list-item"><strong>Liên thông dữ liệu</strong><span class="tag info">Hà Nội ↔ Đà Nẵng</span> được cấp cho chuyên án CA-2026-011 đến 30/06/2026.</div><button class="btn primary" onclick="openModal('dataBridge')">Cấp quyền liên thông</button></div>`;
 }
 
 function rbacView() {
   const tab = state.tabs.rbac;
-  return layout("Quản lý vai trò và phân quyền", "RBAC theo vai trò, quyền chức năng, phạm vi dữ liệu và danh sách người dùng", `
+  return layout("Vai trò và phân quyền", "Tích chọn chức năng được phép sử dụng theo từng vai trò trong 7 nhóm nghiệp vụ", `
     <div class="panel">
-      <div class="panel-head"><div class="tabs">${["roles:Vai trò", "matrix:Ma trận quyền", "users:Người dùng thuộc vai trò"].map(tabButton("rbac")).join("")}</div><button class="btn primary" onclick="openModal('roleForm')" ${can("role") ? "" : "disabled"}>Tạo vai trò</button></div>
-      <div class="panel-body">${tab === "roles" ? rolesList() : tab === "matrix" ? permissionMatrix() : tableUsers(users)}</div>
+      <div class="panel-head"><div class="tabs">${["roles:Danh sách vai trò", "matrix:Phân quyền chức năng", "users:Người dùng thuộc vai trò"].map(tabButton("rbac")).join("")}</div><button class="btn primary" onclick="openModal('roleForm')" ${can("role") ? "" : "disabled"}>Thêm mới vai trò</button></div>
+      <div class="panel-body">${tab === "roles" ? rolesList() : tab === "matrix" ? permissionMatrix() : tableUsers(users, { compact: true })}</div>
     </div>
   `);
 }
 
 function rolesList() {
-  return `<div class="grid cols-3">${roles.map((r) => `<div class="list-item"><strong>${r}</strong><span class="muted">${r === "Admin" ? "Toàn hệ thống" : "Phạm vi theo đơn vị"}</span><div class="toolbar" style="margin-top:10px"><button class="btn" onclick="openModal('roleForm',{role:'${r}'})">Sửa</button><button class="btn" onclick="openModal('roleClone',{role:'${r}'})">Sao chép</button></div></div>`).join("")}</div>`;
+  return `<div class="grid cols-3">${roleProfiles.map((r) => `<div class="role-card"><div class="role-card-head"><strong>${r.name}</strong><span class="tag info">${r.users} tài khoản</span></div><p>${r.scope}</p><div class="permission-progress"><span style="width:${Math.min(100, Math.round((r.enabled / totalPermissionCount()) * 100))}%"></span></div><small>${r.enabled}/${totalPermissionCount()} chức năng được cấp</small><div class="toolbar" style="margin-top:12px"><button class="btn" onclick="openModal('roleDetail',{role:'${r.name}'})">Xem</button><button class="btn" onclick="openModal('roleForm',{role:'${r.name}'})">Sửa</button><button class="btn danger" onclick="notify('Đã mô phỏng xóa vai trò ${r.name}')">Xóa</button></div></div>`).join("")}</div>`;
 }
 
 function permissionMatrix() {
-  const cols = ["Xem", "Tạo", "Sửa", "Xóa", "Phê duyệt", "Xuất báo cáo", "QL người dùng", "QL đơn vị", "QL chuyên án", "QL thiết bị", "Điều khiển", "QL cảnh báo"];
-  return `<div class="matrix"><table><thead><tr><th>Vai trò</th>${cols.map((c) => `<th>${c}</th>`).join("")}</tr></thead><tbody>${roles.map((r, i) => `<tr><td><strong>${r}</strong></td>${cols.map((_, j) => `<td>${i === 0 || j < Math.max(3, 11 - i) ? "✓" : "−"}</td>`).join("")}</tr>`).join("")}</tbody></table></div>`;
+  return `<div class="permission-board">${permissionModules.map((module, moduleIndex) => `<section class="permission-section"><div class="permission-section-head"><div><strong>${module.name}</strong><p>${module.description}</p></div><span class="tag info">${module.features.length} chức năng</span></div><div class="permission-list">${module.features.map((feature, featureIndex) => `<label class="check-tile"><input type="checkbox" ${moduleIndex < 2 || featureIndex < 2 ? "checked" : ""}>${feature}</label>`).join("")}</div></section>`).join("")}</div>`;
 }
 
 function accountsView() {
-  return crudPage("Quản lý tài khoản", "Tạo, chỉnh sửa, khóa/kích hoạt, đặt lại mật khẩu và điều chuyển công tác", "Tạo tài khoản", "accountForm", tableUsers(filtered(users, ["name", "email", "unit", "role", "status"])));
+  return crudPage("Quản lý tài khoản", "Tạo tài khoản cán bộ, xem/sửa/xóa, điều chuyển công tác và đặt lại mật khẩu cho cấp dưới", "Tạo tài khoản", "accountForm", tableUsers(filtered(users, ["staffId", "name", "email", "unit", "role", "status"])));
 }
 
 function reportsView() {
@@ -413,8 +505,21 @@ function crudPage(title, subtitle, actionLabel, modalType, body) {
   `);
 }
 
-function tableUsers(rows) {
-  return `<table><thead><tr><th>Họ tên</th><th>Liên hệ</th><th>Đơn vị</th><th>Phòng</th><th>Vai trò</th><th>Trạng thái</th><th></th></tr></thead><tbody>${rows.map((u) => `<tr><td><strong>${u.name}</strong></td><td>${u.phone}<br><span class="muted">${u.email}</span></td><td>${u.unit}</td><td>${u.room}</td><td>${u.role}</td><td><span class="status ${statusClass(u.status)}">${u.status}</span></td><td class="toolbar"><button class="btn" onclick="openModal('accountForm',{name:'${u.name}'})">Sửa</button><button class="btn" onclick="openModal('transfer',{name:'${u.name}'})">Điều chuyển</button><button class="btn danger" onclick="notify('Đã mô phỏng khóa/kích hoạt tài khoản ${u.name}')">Khóa</button></td></tr>`).join("")}</tbody></table>`;
+function tableUsers(rows, options = {}) {
+  return `<table><thead><tr><th>Mã cán bộ</th><th>Họ và tên</th><th>SĐT</th><th>Mail</th><th>Vai trò</th><th>Đơn vị công tác</th><th>Trạng thái</th><th></th></tr></thead><tbody>${rows.map((u) => `<tr><td><strong>${u.staffId}</strong></td><td><div class="staff-cell"><span class="avatar">${u.avatar}</span><span>${u.name}</span></div></td><td>${u.phone}</td><td>${u.email}</td><td>${u.role}</td><td>${placementLabel(u)}</td><td><span class="status ${statusClass(u.status)}">${u.status}</span></td><td class="toolbar"><button class="btn" onclick="openModal('accountDetail',{staffId:'${u.staffId}'})">Xem</button><button class="btn" onclick="openModal('accountForm',{staffId:'${u.staffId}'})">Sửa</button><button class="btn danger" onclick="notify('Đã mô phỏng xóa tài khoản ${u.staffId}')">Xóa</button><button class="btn" onclick="openModal('transfer',{staffId:'${u.staffId}'})">Điều chuyển</button>${options.compact ? "" : `<button class="btn" onclick="openModal('resetPassword',{staffId:'${u.staffId}'})">Đặt lại MK</button>`}</td></tr>`).join("")}</tbody></table>`;
+}
+
+function totalPermissionCount() {
+  return permissionModules.reduce((sum, module) => sum + module.features.length, 0);
+}
+
+function placementLabel(user) {
+  return [user.directorate, user.province, user.department, user.ward].filter(Boolean).join(" / ") || user.unit;
+}
+
+function departmentAccounts(item) {
+  const rows = users.filter((user) => item.accounts.includes(user.staffId));
+  return `<div class="list"><div class="list-item"><strong>${item.type}</strong>${item.directorate}<br>${item.province}${item.ward !== "-" ? ` / ${item.ward}` : ""}</div>${tableUsers(rows, { compact: true })}<div class="toolbar"><button class="btn primary" onclick="openModal('attachAccount',{name:'${item.name}'})">Thêm tài khoản có sẵn</button><button class="btn" onclick="openModal('orgAccounts',{name:'${item.name}'})">Xem danh sách</button></div></div>`;
 }
 
 function deviceCards(rows) {
@@ -456,10 +561,19 @@ function modal() {
     alertHandle: "Xử lý cảnh báo",
     areaForm: "Tạo khu vực giám sát",
     unitForm: "Tạo/Cập nhật đơn vị",
+    unitTypeForm: "Thêm mới cơ cấu tổ chức",
+    directorateForm: "Thêm đơn vị chỉ đạo nghiệp vụ",
+    departmentForm: "Thêm phòng nghiệp vụ",
+    wardUnitForm: "Thêm đơn vị cấp xã",
+    orgAccounts: "Danh sách tài khoản bộ phận",
+    attachAccount: "Thêm tài khoản vào bộ phận",
     dataBridge: "Cấp quyền liên thông dữ liệu",
     roleForm: "Cấu hình vai trò",
+    roleDetail: "Thông tin vai trò",
     roleClone: "Sao chép vai trò",
     accountForm: "Tạo/Cập nhật tài khoản",
+    accountDetail: "Chi tiết tài khoản",
+    resetPassword: "Đặt lại mật khẩu",
     transfer: "Điều chuyển cán bộ",
     reportPreview: "Xem trước báo cáo"
   };
@@ -476,12 +590,23 @@ function modal() {
 
 function modalBody(type, payload) {
   if (type === "workflow") {
-    return `<div class="grid cols-3"><div class="list-item"><strong>Admin</strong>Tạo đơn vị cấp Cục và tài khoản Quản lý cấp Cục.</div><div class="list-item"><strong>Quản lý cấp Cục</strong>Tạo Tỉnh, Phòng nghiệp vụ cấp Tỉnh, Quản lý/Cán bộ cấp Tỉnh.</div><div class="list-item"><strong>Quản lý cấp Tỉnh</strong>Tạo Xã, Phòng nghiệp vụ cấp Xã, Quản lý/Cán bộ cấp Xã.</div></div>${orgTree(org)}`;
+    return `<div class="grid cols-3"><div class="list-item"><strong>Admin</strong>Tạo Đơn vị chỉ đạo nghiệp vụ cấp TW và tài khoản quản lý.</div><div class="list-item"><strong>Quản lý cấp Cục</strong>Tạo Phòng nghiệp vụ cấp tỉnh và phân công cán bộ quản lý.</div><div class="list-item"><strong>Quản lý cấp Tỉnh</strong>Tạo Đơn vị cấp cơ sở cấp xã và thêm tài khoản vào bộ phận.</div></div>${orgStructure()}`;
   }
   if (type === "activity") return activityLog();
   if (type === "history") return `<div class="list"><div class="list-item"><strong>${payload.id}</strong>09:00 Cầu Nhật Tân → 09:30 Đông Anh → 10:00 Khu vực A12</div><button class="btn primary" onclick="state.mapLayer='history'; closeModal(); setView('map')">Hiển thị trên bản đồ</button></div>`;
   if (type === "deviceControl") return `<div class="form-grid"><div class="field full"><label>Thiết bị</label><input class="form-control" value="${payload.id || state.selectedDevice}"></div><div class="field"><label>Tần suất gửi vị trí</label><select class="form-control"><option>10 giây/lần</option><option>30 giây/lần</option><option>1 phút/lần</option></select></div><div class="field"><label>Chế độ</label><select class="form-control"><option>Theo dõi liên tục</option><option>Tiết kiệm pin</option><option>Ngủ tạm thời</option></select></div><div class="field full"><label>Lệnh nhanh</label><div class="toolbar"><button class="btn">Ping</button><button class="btn">Cập nhật firmware</button><button class="btn danger">Ngắt kết nối</button></div></div></div>`;
+  if (type === "directorateForm") return directorateForm(payload);
+  if (type === "departmentForm") return departmentForm(payload);
+  if (type === "wardUnitForm") return wardUnitForm(payload);
+  if (type === "unitTypeForm") return unitTypeForm(payload);
+  if (type === "orgAccounts") return orgAccounts(payload.name);
+  if (type === "attachAccount") return attachAccountForm(payload.name);
+  if (type === "accountForm") return accountForm(payload.staffId);
+  if (type === "accountDetail") return accountDetail(payload.staffId);
+  if (type === "transfer") return transferForm(payload.staffId);
+  if (type === "resetPassword") return resetPasswordForm(payload.staffId);
   if (type === "roleForm") return roleForm(payload.role || "Vai trò nghiệp vụ mới");
+  if (type === "roleDetail") return roleDetail(payload.role);
   if (type === "reportPreview") return `<div class="list"><div class="list-item"><strong>${payload.name}</strong>Dữ liệu mẫu gồm 5 thiết bị, 3 chuyên án, 5 cảnh báo trong kỳ.</div>${permissionMatrix()}</div>`;
   return genericForm(type, payload);
 }
@@ -499,9 +624,102 @@ function genericForm(type, payload) {
   return `<div class="form-grid">${common}</div>`;
 }
 
+function selectOptions(items, selected = "") {
+  return items.map((item) => `<option ${item === selected ? "selected" : ""}>${item}</option>`).join("");
+}
+
+function managerOptions(selected = "") {
+  return users.map((user) => `<option ${user.name === selected ? "selected" : ""}>${user.name}</option>`).join("");
+}
+
+function unitTypeForm(payload = {}) {
+  return `<div class="grid cols-3">
+    <button class="list-item" onclick="state.modal={type:'directorateForm',payload:{}}; render()"><strong>Đơn vị chỉ đạo nghiệp vụ</strong><span>Cấp TW: nhập tên đơn vị, chọn cán bộ quản lý, ghi chú.</span></button>
+    <button class="list-item" onclick="state.modal={type:'departmentForm',payload:{}}; render()"><strong>Phòng nghiệp vụ</strong><span>Cấp tỉnh: chọn đơn vị chỉ đạo, tỉnh trực thuộc và cán bộ quản lý.</span></button>
+    <button class="list-item" onclick="state.modal={type:'wardUnitForm',payload:{}}; render()"><strong>Đơn vị cấp cơ sở</strong><span>Cấp xã: chọn đơn vị chỉ đạo, tỉnh, phòng nghiệp vụ, xã và cán bộ quản lý.</span></button>
+  </div>`;
+}
+
+function directorateForm(payload = {}) {
+  return `<div class="form-grid">
+    <div class="field full"><label>Tên đơn vị chỉ đạo nghiệp vụ</label><input class="form-control" value="${payload.name || ""}" placeholder="Ví dụ: Cục Kỹ thuật nghiệp vụ"></div>
+    <div class="field full"><label>Cán bộ quản lý</label><select class="form-control">${managerOptions(payload.manager)}</select></div>
+    <div class="field full"><label>Ghi chú</label><textarea class="form-control" rows="4" placeholder="Mô tả phạm vi chỉ đạo nghiệp vụ"></textarea></div>
+  </div>`;
+}
+
+function departmentForm(payload = {}) {
+  return `<div class="form-grid">
+    <div class="field"><label>Tên phòng nghiệp vụ</label><input class="form-control" value="${payload.name || ""}" placeholder="Ví dụ: Phòng Theo dõi thiết bị"></div>
+    <div class="field"><label>Đơn vị chỉ đạo nghiệp vụ</label><select class="form-control">${selectOptions(directorates, payload.directorate)}</select></div>
+    <div class="field"><label>Tỉnh trực thuộc</label><select class="form-control">${selectOptions(provinces, payload.province)}</select></div>
+    <div class="field"><label>Cán bộ quản lý</label><select class="form-control">${managerOptions(payload.manager)}</select></div>
+    <div class="field full"><label>Ghi chú</label><textarea class="form-control" rows="4" placeholder="Ghi chú chức năng, phạm vi địa bàn"></textarea></div>
+  </div>`;
+}
+
+function wardUnitForm(payload = {}) {
+  return `<div class="form-grid">
+    <div class="field"><label>Tên đơn vị cấp xã</label><input class="form-control" value="${payload.name || ""}" placeholder="Ví dụ: Tổ giám sát xã Đông Anh"></div>
+    <div class="field"><label>Đơn vị chỉ đạo nghiệp vụ</label><select class="form-control">${selectOptions(directorates, payload.directorate)}</select></div>
+    <div class="field"><label>Tỉnh trực thuộc</label><select class="form-control">${selectOptions(provinces, payload.province)}</select></div>
+    <div class="field"><label>Phòng nghiệp vụ</label><select class="form-control">${selectOptions(departments, payload.department)}</select></div>
+    <div class="field"><label>Xã trực thuộc</label><select class="form-control">${selectOptions(wards, payload.ward)}</select></div>
+    <div class="field"><label>Cán bộ quản lý</label><select class="form-control">${managerOptions(payload.manager)}</select></div>
+    <div class="field full"><label>Ghi chú</label><textarea class="form-control" rows="4" placeholder="Ghi chú địa bàn hoặc nhiệm vụ"></textarea></div>
+  </div>`;
+}
+
+function orgAccounts(name) {
+  const item = orgCatalog.find((unit) => unit.name === name) || orgCatalog[0];
+  const rows = users.filter((user) => item.accounts.includes(user.staffId));
+  return `<div class="list"><div class="list-item"><strong>${item.name}</strong>${item.type} • ${item.level}<br>Quản lý: ${item.manager}</div>${tableUsers(rows, { compact: true })}<button class="btn primary" onclick="state.modal={type:'attachAccount',payload:{name:'${item.name}'}}; render()">Thêm tài khoản có sẵn</button></div>`;
+}
+
+function attachAccountForm(name) {
+  return `<div class="form-grid"><div class="field full"><label>Bộ phận</label><input class="form-control" value="${name || ""}"></div><div class="field full"><label>Chọn tài khoản có sẵn</label><select class="form-control">${users.map((user) => `<option>${user.staffId} - ${user.name} - ${user.role}</option>`).join("")}</select></div><div class="field full"><span class="tag info">Tài khoản được thêm sẽ kế thừa phạm vi dữ liệu của bộ phận này.</span></div></div>`;
+}
+
+function accountForm(staffId) {
+  const user = users.find((item) => item.staffId === staffId) || {};
+  return `<div class="form-grid">
+    <div class="field"><label>Mã nhân viên</label><input class="form-control" value="${user.staffId || ""}" placeholder="CB008"></div>
+    <div class="field"><label>Họ và tên</label><input class="form-control" value="${user.name || ""}" placeholder="Nhập họ tên cán bộ"></div>
+    <div class="field"><label>AVT</label><input class="form-control" type="file" accept="image/*"></div>
+    <div class="field"><label>SĐT</label><input class="form-control" value="${user.phone || ""}" placeholder="09xx xxx xxx"></div>
+    <div class="field"><label>Mail</label><input class="form-control" value="${user.email || ""}" placeholder="email@themis.vn"></div>
+    <div class="field"><label>Vai trò</label><select class="form-control">${roles.map((role) => `<option ${role === user.role ? "selected" : ""}>${role}</option>`).join("")}</select></div>
+    <div class="field full"><label>Đơn vị làm việc theo vai trò</label><div class="permission-section"><div class="form-grid">
+      <div class="field"><label>Đơn vị chỉ đạo nghiệp vụ</label><select class="form-control">${selectOptions(directorates, user.directorate)}</select></div>
+      <div class="field"><label>Phòng nghiệp vụ</label><select class="form-control"><option>Không áp dụng cho cấp Cục</option>${selectOptions(departments, user.department)}</select></div>
+      <div class="field"><label>Đơn vị cấp xã</label><select class="form-control"><option>Không áp dụng cho cấp Cục/Tỉnh</option>${selectOptions(wards, user.ward)}</select></div>
+      <div class="field"><label>Trạng thái</label><select class="form-control"><option ${user.status === "Hoạt động" ? "selected" : ""}>Hoạt động</option><option ${user.status === "Khóa" ? "selected" : ""}>Khóa</option></select></div>
+    </div><p class="muted">Cấp Cục chỉ chọn Đơn vị chỉ đạo nghiệp vụ. Cấp phòng nghiệp vụ chọn Đơn vị chỉ đạo nghiệp vụ và Phòng nghiệp vụ. Cấp xã chọn đủ ba cấp.</p></div></div>
+  </div>`;
+}
+
+function accountDetail(staffId) {
+  const user = users.find((item) => item.staffId === staffId) || users[0];
+  return `<div class="list"><div class="account-hero"><span class="avatar large">${user.avatar}</span><div><strong>${user.staffId} - ${user.name}</strong><p>${user.role} • ${placementLabel(user)}</p><span class="status ${statusClass(user.status)}">${user.status}</span></div></div><div class="grid cols-2"><div class="list-item"><strong>Liên hệ</strong>${user.phone}<br>${user.email}</div><div class="list-item"><strong>Đơn vị công tác</strong>${placementLabel(user)}</div></div><div class="list-item"><strong>Chuyên án đang theo dõi</strong>${user.casesFollowing.map((id) => `<span class="tag info" style="margin:6px 6px 0 0">${id}</span>`).join("")}</div><div class="toolbar"><button class="btn" onclick="state.modal={type:'accountForm',payload:{staffId:'${user.staffId}'}}; render()">Sửa</button><button class="btn" onclick="state.modal={type:'transfer',payload:{staffId:'${user.staffId}'}}; render()">Điều chuyển công tác</button><button class="btn" onclick="state.modal={type:'resetPassword',payload:{staffId:'${user.staffId}'}}; render()">Đặt lại mật khẩu</button></div></div>`;
+}
+
+function transferForm(staffId) {
+  const user = users.find((item) => item.staffId === staffId) || users[0];
+  return `<div class="form-grid"><div class="field full"><label>Cán bộ</label><input class="form-control" value="${user.staffId} - ${user.name}"></div><div class="field full"><label>Đơn vị hiện tại</label><input class="form-control" value="${placementLabel(user)}"></div><div class="field"><label>Đơn vị chỉ đạo nghiệp vụ mới</label><select class="form-control">${selectOptions(directorates, user.directorate)}</select></div><div class="field"><label>Tỉnh trực thuộc mới</label><select class="form-control">${selectOptions(provinces, user.province)}</select></div><div class="field"><label>Phòng nghiệp vụ mới</label><select class="form-control">${selectOptions(departments, user.department)}</select></div><div class="field"><label>Đơn vị cấp xã mới</label><select class="form-control">${selectOptions(wards, user.ward)}</select></div><div class="field full"><label>Lý do điều chuyển</label><textarea class="form-control" rows="4" placeholder="Nhập lý do chuyển công tác"></textarea></div></div>`;
+}
+
+function resetPasswordForm(staffId) {
+  const user = users.find((item) => item.staffId === staffId) || users[0];
+  return `<div class="form-grid"><div class="field full"><label>Tài khoản cấp dưới</label><input class="form-control" value="${user.staffId} - ${user.name}"></div><div class="field"><label>Mật khẩu mới</label><input class="form-control" type="password" value="Themis@2026"></div><div class="field"><label>Yêu cầu đổi khi đăng nhập</label><select class="form-control"><option>Có</option><option>Không</option></select></div><div class="field full"><span class="tag warning">Chỉ tài khoản có quyền cao hơn trong cùng phạm vi dữ liệu được đặt lại mật khẩu.</span></div></div>`;
+}
+
 function roleForm(role) {
-  const perms = ["Xem dữ liệu", "Tạo mới", "Chỉnh sửa", "Xóa", "Phê duyệt", "Xuất báo cáo", "Quản lý người dùng", "Quản lý đơn vị", "Quản lý chuyên án", "Quản lý thiết bị", "Điều khiển thiết bị", "Quản lý cảnh báo"];
-  return `<div class="form-grid"><div class="field"><label>Tên vai trò</label><input class="form-control" value="${role}"></div><div class="field"><label>Phạm vi dữ liệu</label><select class="form-control"><option>Theo đơn vị</option><option>Đơn vị và cấp dưới</option><option>Liên thông được cấp quyền</option><option>Toàn hệ thống</option></select></div><div class="field full"><label>Quyền chức năng</label><div class="permission-grid">${perms.map((p, i) => `<label class="check-tile"><input type="checkbox" ${i < 8 ? "checked" : ""}>${p}</label>`).join("")}</div></div><div class="field full"><span class="tag warning">Chỉ Admin hoặc Quản lý cấp Cục được phép cấu hình quyền.</span></div></div>`;
+  return `<div class="form-grid"><div class="field"><label>Tên vai trò</label><input class="form-control" value="${role}" placeholder="Nhập tên vai trò"></div><div class="field"><label>Phạm vi dữ liệu</label><select class="form-control"><option>Theo đơn vị công tác</option><option>Đơn vị và cấp dưới</option><option>Liên thông được cấp quyền</option><option>Toàn hệ thống</option></select></div><div class="field full"><label>Chọn tính năng muốn phân quyền</label>${permissionMatrix()}</div><div class="field full"><span class="tag warning">Chỉ Admin hoặc Quản lý cấp Cục được phép thêm, sửa hoặc cấu hình quyền cho vai trò.</span></div></div>`;
+}
+
+function roleDetail(role) {
+  const profile = roleProfiles.find((item) => item.name === role) || roleProfiles[0];
+  return `<div class="list"><div class="list-item"><strong>${profile.name}</strong>${profile.scope}<br>${profile.users} tài khoản đang sử dụng • ${profile.enabled}/${totalPermissionCount()} chức năng được cấp</div>${permissionMatrix()}<div class="toolbar"><button class="btn primary" onclick="state.modal={type:'roleForm',payload:{role:'${profile.name}'}}; render()">Cấu hình quyền</button><button class="btn danger" onclick="notify('Đã mô phỏng xóa vai trò ${profile.name}')">Xóa vai trò</button></div></div>`;
 }
 
 function render() {
