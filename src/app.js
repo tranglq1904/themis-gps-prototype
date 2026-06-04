@@ -8,6 +8,11 @@ const state = {
   mapLayer: "live",
   splitMap: false,
   tick: 0,
+  orgExpanded: {
+    "Cục Kỹ thuật nghiệp vụ": true,
+    "Phòng Theo dõi thiết bị Hà Nội": true,
+    "Phòng Phân tích dữ liệu Đà Nẵng": true
+  },
   tabs: {
     org: "structure",
     rbac: "roles",
@@ -107,8 +112,10 @@ const orgCatalog = [
   { type: "Đơn vị chỉ đạo nghiệp vụ", level: "Cấp TW", name: "Cục Kỹ thuật nghiệp vụ", directorate: "Cục Kỹ thuật nghiệp vụ", province: "Toàn quốc", department: "Ban chỉ đạo", ward: "-", manager: "Nguyễn Văn An", accounts: ["CB001", "CB005"] },
   { type: "Phòng nghiệp vụ", level: "Cấp tỉnh", name: "Phòng Theo dõi thiết bị Hà Nội", directorate: "Cục Kỹ thuật nghiệp vụ", province: "Hà Nội", department: "Phòng Theo dõi thiết bị", ward: "-", manager: "Trần Minh Đức", accounts: ["CB002", "CB004"] },
   { type: "Phòng nghiệp vụ", level: "Cấp tỉnh", name: "Phòng Phân tích dữ liệu Đà Nẵng", directorate: "Cục Kỹ thuật nghiệp vụ", province: "Đà Nẵng", department: "Phòng Phân tích dữ liệu", ward: "-", manager: "Hoàng Anh Tuấn", accounts: ["CB006"] },
+  { type: "Phòng nghiệp vụ", level: "Cấp tỉnh", name: "Phòng Quản lý chuyên án TP Hồ Chí Minh", directorate: "Cục Kỹ thuật nghiệp vụ", province: "TP Hồ Chí Minh", department: "Phòng Quản lý chuyên án", ward: "-", manager: "Đỗ Minh Khôi", accounts: ["CB005"] },
   { type: "Đơn vị cấp cơ sở", level: "Cấp xã", name: "Tổ giám sát xã Đông Anh", directorate: "Cục Kỹ thuật nghiệp vụ", province: "Hà Nội", department: "Phòng Theo dõi thiết bị", ward: "Xã Đông Anh", manager: "Phạm Quang Huy", accounts: ["CB003"] },
-  { type: "Đơn vị cấp cơ sở", level: "Cấp xã", name: "Tổ giám sát xã Hòa Vang", directorate: "Cục Kỹ thuật nghiệp vụ", province: "Đà Nẵng", department: "Phòng Phân tích dữ liệu", ward: "Xã Hòa Vang", manager: "Võ Thanh Bình", accounts: ["CB007"] }
+  { type: "Đơn vị cấp cơ sở", level: "Cấp xã", name: "Tổ giám sát xã Hòa Vang", directorate: "Cục Kỹ thuật nghiệp vụ", province: "Đà Nẵng", department: "Phòng Phân tích dữ liệu", ward: "Xã Hòa Vang", manager: "Võ Thanh Bình", accounts: ["CB007"] },
+  { type: "Đơn vị cấp cơ sở", level: "Cấp xã", name: "Tổ giám sát xã Củ Chi", directorate: "Cục Kỹ thuật nghiệp vụ", province: "TP Hồ Chí Minh", department: "Phòng Quản lý chuyên án", ward: "Xã Củ Chi", manager: "Lê Thu Hà", accounts: ["CB004"] }
 ];
 
 const org = [
@@ -408,11 +415,10 @@ function areasView() {
 }
 
 function orgView() {
-  const tab = state.tabs.org;
   return layout("Cơ cấu tổ chức", "Quản lý Đơn vị chỉ đạo nghiệp vụ, Phòng nghiệp vụ cấp tỉnh và Đơn vị cấp cơ sở cấp xã", `
     <div class="panel">
-      <div class="panel-head"><div class="tabs">${["structure:Cơ cấu tổ chức", "departments:Bộ phận nghiệp vụ", "staff:Danh sách tài khoản", "scope:Phạm vi dữ liệu"].map(tabButton("org")).join("")}</div><button class="btn primary" onclick="openModal('unitTypeForm')">Thêm mới cơ cấu</button></div>
-      <div class="panel-body">${tab === "structure" ? orgStructure() : orgTab(tab)}</div>
+      <div class="panel-head"><h2>Sơ đồ cây phân cấp</h2><button class="btn primary" onclick="openModal('unitTypeForm')">Thêm mới cơ cấu</button></div>
+      <div class="panel-body">${orgStructure()}</div>
     </div>
   `);
 }
@@ -420,20 +426,57 @@ function orgView() {
 function orgStructure() {
   const roots = orgCatalog.filter((item) => item.type === "Đơn vị chỉ đạo nghiệp vụ");
   return `
-    <div class="toolbar" style="margin-bottom:12px">
-      <button class="btn primary" onclick="openModal('directorateForm')">Thêm đơn vị chỉ đạo nghiệp vụ</button>
-      <button class="btn" onclick="openModal('departmentForm')">Thêm phòng nghiệp vụ</button>
-      <button class="btn" onclick="openModal('wardUnitForm')">Thêm đơn vị cấp xã</button>
-    </div>
-    <div class="org-summary">
-      <div><strong>${roots.length}</strong><span>Đơn vị chỉ đạo nghiệp vụ cấp TW</span></div>
-      <div><strong>${orgCatalog.filter((item) => item.type === "Phòng nghiệp vụ").length}</strong><span>Phòng nghiệp vụ cấp tỉnh</span></div>
-      <div><strong>${orgCatalog.filter((item) => item.type === "Đơn vị cấp cơ sở").length}</strong><span>Đơn vị cấp xã trực thuộc</span></div>
-    </div>
-    <div class="org-chart">
-      ${roots.map(orgChartRoot).join("")}
+    <div class="vertical-org-tree">
+      ${roots.map(orgVerticalRoot).join("")}
     </div>
   `;
+}
+
+function toggleOrgNode(name) {
+  state.orgExpanded[name] = !state.orgExpanded[name];
+  render();
+}
+
+function orgVerticalRoot(root) {
+  const departmentsInRoot = orgCatalog.filter((item) => item.type === "Phòng nghiệp vụ" && item.directorate === root.directorate);
+  return `<div class="tree-level">
+    ${orgVerticalRow(root, "Cấp TW", departmentsInRoot.length)}
+    <div class="tree-children ${state.orgExpanded[root.name] ? "open" : ""}">
+      ${departmentsInRoot.map((department) => {
+        const wardUnits = orgCatalog.filter((item) => item.type === "Đơn vị cấp cơ sở" && item.directorate === department.directorate && item.province === department.province && item.department === department.department);
+        return `<div class="tree-level">
+          ${orgVerticalRow(department, `Cấp tỉnh • ${department.province}`, wardUnits.length)}
+          <div class="tree-children ${state.orgExpanded[department.name] ? "open" : ""}">
+            ${wardUnits.map((wardUnit) => `<div class="tree-level leaf">${orgVerticalRow(wardUnit, `Cấp xã • ${wardUnit.ward}`, 0)}</div>`).join("")}
+          </div>
+        </div>`;
+      }).join("")}
+    </div>
+  </div>`;
+}
+
+function orgVerticalRow(item, levelLabel, childCount) {
+  const hasChildren = childCount > 0;
+  const isOpen = !!state.orgExpanded[item.name];
+  return `<div class="tree-row ${hasChildren ? "has-children" : ""}">
+    <button class="tree-toggle" ${hasChildren ? `onclick="toggleOrgNode('${item.name}')"` : "disabled"}>${hasChildren ? (isOpen ? "⌄" : "›") : ""}</button>
+    <div class="tree-main" ${hasChildren ? `onclick="toggleOrgNode('${item.name}')"` : ""}>
+      <span class="tag ${item.type === "Đơn vị chỉ đạo nghiệp vụ" ? "active" : item.type === "Phòng nghiệp vụ" ? "info" : "ok"}">${levelLabel}</span>
+      <strong>${item.name}</strong>
+      <small>${item.type} • Quản lý: ${item.manager}</small>
+      <div class="tree-meta">
+        <span>${item.directorate}</span>
+        ${item.province && item.province !== "-" ? `<span>${item.province}</span>` : ""}
+        ${item.department && item.department !== "-" ? `<span>${item.department}</span>` : ""}
+        ${item.ward && item.ward !== "-" ? `<span>${item.ward}</span>` : ""}
+      </div>
+    </div>
+    <div class="tree-count">${hasChildren ? `${childCount} cấp dưới` : "Cấp cuối"}</div>
+    <div class="tree-actions">
+      <button class="btn" onclick="openModal('orgAccounts',{name:'${item.name}'})">Tài khoản</button>
+      <button class="btn" onclick="openModal('unitTypeForm',{name:'${item.name}',type:'${item.type}'})">Sửa</button>
+    </div>
+  </div>`;
 }
 
 function orgChartRoot(root) {

@@ -671,6 +671,127 @@ th {
   background: linear-gradient(90deg, var(--primary), var(--primary-2));
 }
 
+.vertical-org-tree {
+  display: grid;
+  gap: 10px;
+}
+
+.tree-level {
+  position: relative;
+  display: grid;
+  gap: 8px;
+}
+
+.tree-children {
+  display: none;
+  position: relative;
+  margin-left: 28px;
+  padding-left: 22px;
+  border-left: 2px solid var(--line);
+  gap: 8px;
+}
+
+.tree-children.open {
+  display: grid;
+}
+
+.tree-level.leaf::before,
+.tree-children > .tree-level::before {
+  content: "";
+  position: absolute;
+  left: -22px;
+  top: 32px;
+  width: 20px;
+  height: 2px;
+  background: var(--line);
+}
+
+.tree-row {
+  position: relative;
+  min-width: 0;
+  min-height: 76px;
+  display: grid;
+  grid-template-columns: 34px minmax(260px, 1fr) 104px auto;
+  align-items: center;
+  gap: 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #ffffff;
+  box-shadow: var(--shadow);
+  padding: 10px;
+}
+
+.tree-row.has-children {
+  border-left: 5px solid var(--primary);
+}
+
+.tree-toggle {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: #edf3f5;
+  color: var(--primary);
+  font-size: 20px;
+  font-weight: 800;
+  display: grid;
+  place-items: center;
+}
+
+.tree-toggle:disabled {
+  background: transparent;
+  cursor: default;
+}
+
+.tree-main {
+  min-width: 0;
+  display: grid;
+  gap: 5px;
+}
+
+.tree-row.has-children .tree-main {
+  cursor: pointer;
+}
+
+.tree-main strong,
+.tree-main small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tree-main small {
+  color: var(--muted);
+}
+
+.tree-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.tree-meta span {
+  min-height: 22px;
+  border-radius: 999px;
+  background: #f0f4f6;
+  color: var(--muted);
+  padding: 3px 8px;
+  font-size: 12px;
+}
+
+.tree-count {
+  color: var(--muted);
+  font-size: 12px;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.tree-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
 .org-summary {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -1308,6 +1429,29 @@ th {
   }
 
   .org-card-actions .btn {
+    flex: 1;
+  }
+
+  .tree-children {
+    margin-left: 12px;
+    padding-left: 14px;
+  }
+
+  .tree-row {
+    grid-template-columns: 32px minmax(0, 1fr);
+  }
+
+  .tree-count {
+    text-align: left;
+    grid-column: 2;
+  }
+
+  .tree-actions {
+    grid-column: 2;
+    justify-content: stretch;
+  }
+
+  .tree-actions .btn {
     flex: 1;
   }
 }
