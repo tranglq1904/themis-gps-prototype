@@ -485,6 +485,10 @@ th {
   font-size: 14px;
 }
 
+.org-tree.classic {
+  gap: 10px;
+}
+
 .org-node {
   border-left: 2px solid var(--line);
   padding-left: 12px;
@@ -501,6 +505,41 @@ th {
   border-radius: 8px;
   padding: 9px 10px;
   margin-bottom: 7px;
+}
+
+.org-row-tree {
+  position: relative;
+  min-height: 74px;
+}
+
+.org-row-tree::before {
+  content: "";
+  position: absolute;
+  left: -14px;
+  top: 36px;
+  width: 12px;
+  height: 2px;
+  background: var(--line);
+}
+
+.org-row-tree > div:first-child {
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+}
+
+.org-row-tree strong,
+.org-row-tree .muted {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.row-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 0 0 auto;
 }
 
 .tabs {
@@ -637,6 +676,83 @@ th {
   gap: 7px;
 }
 
+.org-tree-modern {
+  display: grid;
+  gap: 18px;
+}
+
+.org-tree-root {
+  position: relative;
+  display: grid;
+  gap: 12px;
+}
+
+.org-tree-children {
+  position: relative;
+  display: grid;
+  gap: 12px;
+  margin-left: 28px;
+  padding-left: 24px;
+  border-left: 2px solid var(--line);
+}
+
+.org-tree-children.leaf {
+  margin-top: 12px;
+}
+
+.org-tree-branch {
+  position: relative;
+}
+
+.org-tree-branch::before,
+.org-tree-children.leaf .org-node-card::before {
+  content: "";
+  position: absolute;
+  width: 20px;
+  height: 2px;
+  left: -24px;
+  top: 28px;
+  background: var(--line);
+}
+
+.org-node-card {
+  position: relative;
+  min-width: 0;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #ffffff;
+  box-shadow: var(--shadow);
+  padding: 12px;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.org-node-card.root {
+  border-left: 5px solid var(--primary);
+}
+
+.org-node-card.department {
+  border-left: 5px solid var(--info);
+}
+
+.org-node-card.ward {
+  border-left: 5px solid var(--ok);
+}
+
+.org-node-card strong {
+  display: block;
+  margin-top: 7px;
+  font-size: 16px;
+}
+
+.org-node-card p {
+  margin: 4px 0 8px;
+  color: var(--muted);
+  font-size: 13px;
+}
+
 .org-meta {
   display: flex;
   flex-wrap: wrap;
@@ -650,6 +766,82 @@ th {
   color: var(--muted);
   padding: 4px 8px;
   font-size: 12px;
+}
+
+.department-board {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 14px;
+  align-items: stretch;
+}
+
+.department-card {
+  min-width: 0;
+  min-height: 320px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #ffffff;
+  box-shadow: var(--shadow);
+  padding: 12px;
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  gap: 12px;
+}
+
+.department-card-head {
+  min-width: 0;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.department-card-head strong {
+  display: block;
+  margin-top: 8px;
+}
+
+.department-card-head p {
+  margin: 4px 0 0;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.account-mini-list {
+  display: grid;
+  gap: 8px;
+  align-content: start;
+}
+
+.account-mini {
+  width: 100%;
+  min-width: 0;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fbfcfd;
+  padding: 9px;
+  color: var(--text);
+  text-align: left;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+
+.account-mini span:last-child {
+  min-width: 0;
+}
+
+.account-mini strong,
+.account-mini small {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.account-mini small {
+  color: var(--muted);
+  margin-top: 3px;
 }
 
 .staff-cell,
@@ -687,6 +879,41 @@ th {
   width: 58px;
   height: 58px;
   font-size: 18px;
+}
+
+.actions-cell {
+  width: 112px;
+  white-space: nowrap;
+}
+
+.action-trigger {
+  width: 92px;
+}
+
+.action-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.action-list .list-item {
+  text-align: left;
+  color: var(--text);
+  display: grid;
+  gap: 4px;
+}
+
+.action-list .list-item span {
+  color: var(--muted);
+}
+
+.danger-action {
+  border-color: #f0c7c7;
+  background: #fff6f6;
+}
+
+.danger-action strong {
+  color: var(--danger);
 }
 
 .modal-backdrop {
@@ -805,7 +1032,8 @@ th {
   .grid.cols-4,
   .grid.cols-3,
   .grid.cols-2,
-  .map-layout {
+  .map-layout,
+  .department-board {
     grid-template-columns: 1fr;
   }
 
@@ -838,9 +1066,34 @@ th {
     padding: 14px;
   }
 
+  .org-tree-children {
+    margin-left: 10px;
+    padding-left: 16px;
+  }
+
+  .org-node-card,
+  .department-card-head {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
   .form-grid,
   .permission-grid,
-  .permission-list {
+  .permission-list,
+  .action-list {
     grid-template-columns: 1fr;
+  }
+
+  .org-row-tree {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .row-actions {
+    width: 100%;
+  }
+
+  .row-actions .btn {
+    flex: 1;
   }
 }

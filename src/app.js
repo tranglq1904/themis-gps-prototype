@@ -418,30 +418,79 @@ function orgView() {
 }
 
 function orgStructure() {
-  const grouped = ["Đơn vị chỉ đạo nghiệp vụ", "Phòng nghiệp vụ", "Đơn vị cấp cơ sở"];
+  const roots = orgCatalog.filter((item) => item.type === "Đơn vị chỉ đạo nghiệp vụ");
   return `
     <div class="toolbar" style="margin-bottom:12px">
       <button class="btn primary" onclick="openModal('directorateForm')">Thêm đơn vị chỉ đạo nghiệp vụ</button>
       <button class="btn" onclick="openModal('departmentForm')">Thêm phòng nghiệp vụ</button>
       <button class="btn" onclick="openModal('wardUnitForm')">Thêm đơn vị cấp xã</button>
     </div>
-    <div class="grid cols-3">
-      ${grouped.map((type) => `<div class="panel"><div class="panel-head"><h2>${type}</h2><span class="tag info">${orgCatalog.filter((o) => o.type === type).length}</span></div><div class="panel-body list">${orgCatalog.filter((o) => o.type === type).map(orgCard).join("")}</div></div>`).join("")}
+    <div class="org-tree classic">
+      ${roots.map(orgClassicRoot).join("")}
     </div>
   `;
 }
 
-function orgCard(item) {
-  return `<div class="list-item org-card">
-    <strong>${item.name}</strong>
-    <span class="muted">${item.level} • Quản lý: ${item.manager}</span>
-    <div class="org-meta">
-      <span>${item.directorate}</span>
-      <span>${item.province}</span>
-      <span>${item.department}</span>
-      <span>${item.ward}</span>
+function orgClassicRoot(root) {
+  const departmentsInRoot = orgCatalog.filter((item) => item.type === "Phòng nghiệp vụ" && item.directorate === root.directorate);
+  return `<div class="org-node">
+    ${orgClassicRow(root, "Đơn vị chỉ đạo nghiệp vụ cấp TW")}
+    ${departmentsInRoot.map((department) => {
+      const wardUnits = orgCatalog.filter((item) => item.type === "Đơn vị cấp cơ sở" && item.directorate === department.directorate && item.province === department.province && item.department === department.department);
+      return `<div class="org-node">
+        ${orgClassicRow(department, `Phòng nghiệp vụ cấp tỉnh • ${department.province}`)}
+        ${wardUnits.map((wardUnit) => `<div class="org-node">${orgClassicRow(wardUnit, `Đơn vị cấp cơ sở • ${wardUnit.ward}`)}</div>`).join("")}
+      </div>`;
+    }).join("")}
+  </div>`;
+}
+
+function orgClassicRow(item, label) {
+  return `<div class="org-row org-row-tree">
+    <div>
+      <span class="tag info">${label}</span>
+      <strong>${item.name}</strong>
+      <span class="muted">${item.directorate} • ${item.department} • Quản lý: ${item.manager}</span>
     </div>
-    <div class="toolbar" style="margin-top:10px">
+    <div class="row-actions">
+      <button class="btn" onclick="openModal('orgAccounts',{name:'${item.name}'})">Tài khoản</button>
+      <button class="btn" onclick="openModal('unitTypeForm',{name:'${item.name}',type:'${item.type}'})">Sửa</button>
+    </div>
+  </div>`;
+}
+
+function orgTreeRoot(root) {
+  const departmentsInRoot = orgCatalog.filter((item) => item.type === "Phòng nghiệp vụ" && item.directorate === root.directorate);
+  return `<div class="org-tree-root">
+    ${orgNode(root, "root")}
+    <div class="org-tree-children">
+      ${departmentsInRoot.map((department) => {
+        const wardUnits = orgCatalog.filter((item) => item.type === "Đơn vị cấp cơ sở" && item.directorate === department.directorate && item.province === department.province && item.department === department.department);
+        return `<div class="org-tree-branch">
+          ${orgNode(department, "department")}
+          <div class="org-tree-children leaf">
+            ${wardUnits.map((wardUnit) => orgNode(wardUnit, "ward")).join("")}
+          </div>
+        </div>`;
+      }).join("")}
+    </div>
+  </div>`;
+}
+
+function orgNode(item, level) {
+  return `<div class="org-node-card ${level}">
+    <div>
+      <span class="tag ${level === "root" ? "active" : level === "department" ? "info" : "ok"}">${item.type}</span>
+      <strong>${item.name}</strong>
+      <p>${item.level} • Quản lý: ${item.manager}</p>
+      <div class="org-meta">
+        <span>${item.directorate}</span>
+        <span>${item.province}</span>
+        <span>${item.department}</span>
+        <span>${item.ward}</span>
+      </div>
+    </div>
+    <div class="toolbar">
       <button class="btn" onclick="openModal('orgAccounts',{name:'${item.name}'})">Tài khoản</button>
       <button class="btn" onclick="openModal('unitTypeForm',{name:'${item.name}',type:'${item.type}'})">Sửa</button>
     </div>
@@ -450,7 +499,7 @@ function orgCard(item) {
 
 function orgTab(tab) {
   if (tab === "departments") {
-    return `<div class="grid cols-2">${orgCatalog.map((item) => `<div class="panel"><div class="panel-head"><h2>${item.name}</h2><span class="tag info">${item.type}</span></div><div class="panel-body">${departmentAccounts(item)}</div></div>`).join("")}</div>`;
+    return `<div class="department-board">${orgCatalog.map((item) => departmentAccounts(item)).join("")}</div>`;
   }
   if (tab === "staff") return tableUsers(users, { compact: true });
   return `<div class="list"><div class="list-item"><strong>Dữ liệu mặc định theo cơ cấu</strong>Cán bộ chỉ xem dữ liệu thuộc đơn vị chỉ đạo nghiệp vụ, phòng nghiệp vụ hoặc đơn vị cấp xã được gán.</div><div class="list-item"><strong>Liên thông dữ liệu</strong><span class="tag info">Hà Nội ↔ Đà Nẵng</span> được cấp cho chuyên án CA-2026-011 đến 30/06/2026.</div><button class="btn primary" onclick="openModal('dataBridge')">Cấp quyền liên thông</button></div>`;
@@ -506,7 +555,7 @@ function crudPage(title, subtitle, actionLabel, modalType, body) {
 }
 
 function tableUsers(rows, options = {}) {
-  return `<table><thead><tr><th>Mã cán bộ</th><th>Họ và tên</th><th>SĐT</th><th>Mail</th><th>Vai trò</th><th>Đơn vị công tác</th><th>Trạng thái</th><th></th></tr></thead><tbody>${rows.map((u) => `<tr><td><strong>${u.staffId}</strong></td><td><div class="staff-cell"><span class="avatar">${u.avatar}</span><span>${u.name}</span></div></td><td>${u.phone}</td><td>${u.email}</td><td>${u.role}</td><td>${placementLabel(u)}</td><td><span class="status ${statusClass(u.status)}">${u.status}</span></td><td class="toolbar"><button class="btn" onclick="openModal('accountDetail',{staffId:'${u.staffId}'})">Xem</button><button class="btn" onclick="openModal('accountForm',{staffId:'${u.staffId}'})">Sửa</button><button class="btn danger" onclick="notify('Đã mô phỏng xóa tài khoản ${u.staffId}')">Xóa</button><button class="btn" onclick="openModal('transfer',{staffId:'${u.staffId}'})">Điều chuyển</button>${options.compact ? "" : `<button class="btn" onclick="openModal('resetPassword',{staffId:'${u.staffId}'})">Đặt lại MK</button>`}</td></tr>`).join("")}</tbody></table>`;
+  return `<table><thead><tr><th>Mã cán bộ</th><th>Họ và tên</th><th>SĐT</th><th>Mail</th><th>Vai trò</th><th>Đơn vị công tác</th><th>Trạng thái</th><th>Thao tác</th></tr></thead><tbody>${rows.map((u) => `<tr><td><strong>${u.staffId}</strong></td><td><div class="staff-cell"><span class="avatar">${u.avatar}</span><span>${u.name}</span></div></td><td>${u.phone}</td><td>${u.email}</td><td>${u.role}</td><td>${placementLabel(u)}</td><td><span class="status ${statusClass(u.status)}">${u.status}</span></td><td class="actions-cell"><button class="btn ghost action-trigger" onclick="openModal('accountActions',{staffId:'${u.staffId}',compact:${options.compact ? "true" : "false"}})">Thao tác</button></td></tr>`).join("")}</tbody></table>`;
 }
 
 function totalPermissionCount() {
@@ -519,7 +568,23 @@ function placementLabel(user) {
 
 function departmentAccounts(item) {
   const rows = users.filter((user) => item.accounts.includes(user.staffId));
-  return `<div class="list"><div class="list-item"><strong>${item.type}</strong>${item.directorate}<br>${item.province}${item.ward !== "-" ? ` / ${item.ward}` : ""}</div>${tableUsers(rows, { compact: true })}<div class="toolbar"><button class="btn primary" onclick="openModal('attachAccount',{name:'${item.name}'})">Thêm tài khoản có sẵn</button><button class="btn" onclick="openModal('orgAccounts',{name:'${item.name}'})">Xem danh sách</button></div></div>`;
+  return `<div class="department-card">
+    <div class="department-card-head">
+      <div>
+        <span class="tag info">${item.type}</span>
+        <strong>${item.name}</strong>
+        <p>${item.directorate} • ${item.province}${item.ward !== "-" ? ` • ${item.ward}` : ""}</p>
+      </div>
+      <span class="tag ok">${rows.length} tài khoản</span>
+    </div>
+    <div class="account-mini-list">
+      ${rows.map((user) => `<button class="account-mini" onclick="openModal('accountDetail',{staffId:'${user.staffId}'})"><span class="avatar">${user.avatar}</span><span><strong>${user.staffId} - ${user.name}</strong><small>${user.email} • ${user.phone}</small><small>${user.role}</small></span></button>`).join("")}
+    </div>
+    <div class="toolbar">
+      <button class="btn primary" onclick="openModal('attachAccount',{name:'${item.name}'})">Thêm tài khoản có sẵn</button>
+      <button class="btn" onclick="openModal('orgAccounts',{name:'${item.name}'})">Xem danh sách</button>
+    </div>
+  </div>`;
 }
 
 function deviceCards(rows) {
@@ -573,6 +638,7 @@ function modal() {
     roleClone: "Sao chép vai trò",
     accountForm: "Tạo/Cập nhật tài khoản",
     accountDetail: "Chi tiết tài khoản",
+    accountActions: "Thao tác tài khoản",
     resetPassword: "Đặt lại mật khẩu",
     transfer: "Điều chuyển cán bộ",
     reportPreview: "Xem trước báo cáo"
@@ -603,6 +669,7 @@ function modalBody(type, payload) {
   if (type === "attachAccount") return attachAccountForm(payload.name);
   if (type === "accountForm") return accountForm(payload.staffId);
   if (type === "accountDetail") return accountDetail(payload.staffId);
+  if (type === "accountActions") return accountActions(payload.staffId, payload.compact);
   if (type === "transfer") return transferForm(payload.staffId);
   if (type === "resetPassword") return resetPasswordForm(payload.staffId);
   if (type === "roleForm") return roleForm(payload.role || "Vai trò nghiệp vụ mới");
@@ -701,6 +768,20 @@ function accountForm(staffId) {
 function accountDetail(staffId) {
   const user = users.find((item) => item.staffId === staffId) || users[0];
   return `<div class="list"><div class="account-hero"><span class="avatar large">${user.avatar}</span><div><strong>${user.staffId} - ${user.name}</strong><p>${user.role} • ${placementLabel(user)}</p><span class="status ${statusClass(user.status)}">${user.status}</span></div></div><div class="grid cols-2"><div class="list-item"><strong>Liên hệ</strong>${user.phone}<br>${user.email}</div><div class="list-item"><strong>Đơn vị công tác</strong>${placementLabel(user)}</div></div><div class="list-item"><strong>Chuyên án đang theo dõi</strong>${user.casesFollowing.map((id) => `<span class="tag info" style="margin:6px 6px 0 0">${id}</span>`).join("")}</div><div class="toolbar"><button class="btn" onclick="state.modal={type:'accountForm',payload:{staffId:'${user.staffId}'}}; render()">Sửa</button><button class="btn" onclick="state.modal={type:'transfer',payload:{staffId:'${user.staffId}'}}; render()">Điều chuyển công tác</button><button class="btn" onclick="state.modal={type:'resetPassword',payload:{staffId:'${user.staffId}'}}; render()">Đặt lại mật khẩu</button></div></div>`;
+}
+
+function accountActions(staffId, compact = false) {
+  const user = users.find((item) => item.staffId === staffId) || users[0];
+  return `<div class="list">
+    <div class="account-hero"><span class="avatar">${user.avatar}</span><div><strong>${user.staffId} - ${user.name}</strong><p>${user.role} • ${placementLabel(user)}</p></div></div>
+    <div class="action-list">
+      <button class="list-item" onclick="state.modal={type:'accountDetail',payload:{staffId:'${user.staffId}'}}; render()"><strong>Xem chi tiết</strong><span>Thông tin liên hệ, đơn vị công tác và chuyên án đang theo dõi.</span></button>
+      <button class="list-item" onclick="state.modal={type:'accountForm',payload:{staffId:'${user.staffId}'}}; render()"><strong>Sửa thông tin</strong><span>Cập nhật hồ sơ, vai trò và đơn vị làm việc.</span></button>
+      <button class="list-item" onclick="state.modal={type:'transfer',payload:{staffId:'${user.staffId}'}}; render()"><strong>Điều chuyển công tác</strong><span>Chuyển cán bộ sang đơn vị/phòng/xã khác.</span></button>
+      ${compact ? "" : `<button class="list-item" onclick="state.modal={type:'resetPassword',payload:{staffId:'${user.staffId}'}}; render()"><strong>Đặt lại mật khẩu</strong><span>Dành cho tài khoản có quyền cao hơn trong phạm vi quản lý.</span></button>`}
+      <button class="list-item danger-action" onclick="notify('Đã mô phỏng xóa tài khoản ${user.staffId}'); closeModal()"><strong>Xóa tài khoản</strong><span>Thao tác demo, không xóa dữ liệu thật.</span></button>
+    </div>
+  </div>`;
 }
 
 function transferForm(staffId) {
