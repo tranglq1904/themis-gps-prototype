@@ -13,6 +13,20 @@ const state = {
     "Phòng Theo dõi thiết bị Hà Nội": true,
     "Phòng Phân tích dữ liệu Đà Nẵng": true
   },
+  orgTool: "dashboard",
+  orgWizardStep: 1,
+  orgInsertParent: "Level 2",
+  orgInsertChild: "Level 3",
+  orgNewLevelName: "Cụm nghiệp vụ",
+  orgScope: { "Level 2A": true, "Level 2B": true, "Level 2C": false },
+  orgMapping: {
+    "Cụm A1": ["Level 3A1", "Level 3A2", "Level 3A3"],
+    "Cụm A2": ["Level 3A4", "Level 3A5"],
+    "Cụm B1": ["Level 3B1"],
+    "Cụm B2": ["Level 3B2"],
+    "Cụm B3": ["Level 3B3"]
+  },
+  draggedUnit: null,
   tabs: {
     org: "structure",
     rbac: "roles",
@@ -186,6 +200,74 @@ const dynamicRisks = [
   ["Thiết bị đang online bị đổi owner", "Không ngắt tracking; chỉ cập nhật ownership metadata và audit."],
   ["Rollback một phần", "Dùng plan version, snapshot before_json và idempotency request_id."],
   ["Hiệu năng cây lớn", "Closure table + materialized path + cache theo tenant/root/version."]
+];
+
+const orgDesignerTools = [
+  ["dashboard", "Dashboard"],
+  ["tree", "Organization Tree"],
+  ["designer", "Organization Designer"],
+  ["levels", "Level Management"],
+  ["wizard", "Restructuring Wizard"],
+  ["mapping", "Mapping Drag & Drop"],
+  ["validation", "Validation Center"],
+  ["preview", "Preview Before/After"],
+  ["impact", "Impact Analysis"],
+  ["history", "Change History"],
+  ["restore", "Version Restore"]
+];
+
+const enterpriseLevels = [
+  { name: "Level 1", description: "Root organization layer", units: 1 },
+  { name: "Level 2", description: "Operational division layer", units: 3 },
+  { name: "Level 3", description: "Execution unit layer", units: 8 },
+  { name: "Level 4", description: "Optional field team layer", units: 0 }
+];
+
+const orgScenario = {
+  name: "Level 1",
+  level: "Level 1",
+  staff: 42,
+  devices: 124,
+  cases: 18,
+  children: [
+    {
+      name: "Level 2A",
+      level: "Level 2",
+      staff: 18,
+      devices: 54,
+      cases: 7,
+      children: ["Level 3A1", "Level 3A2", "Level 3A3", "Level 3A4", "Level 3A5"].map((name, index) => ({
+        name,
+        level: "Level 3",
+        staff: 3 + index,
+        devices: 8 + index,
+        cases: 1 + (index % 2),
+        children: []
+      }))
+    },
+    {
+      name: "Level 2B",
+      level: "Level 2",
+      staff: 12,
+      devices: 38,
+      cases: 5,
+      children: ["Level 3B1", "Level 3B2", "Level 3B3"].map((name, index) => ({
+        name,
+        level: "Level 3",
+        staff: 4 + index,
+        devices: 9 + index,
+        cases: 1,
+        children: []
+      }))
+    },
+    { name: "Level 2C", level: "Level 2", staff: 9, devices: 21, cases: 3, children: [] }
+  ]
+};
+
+const orgVersions = [
+  ["v12", "Đang áp dụng", "Chèn Cụm nghiệp vụ giữa Level 2 và Level 3", "2026-06-08 10:24"],
+  ["v11", "Đã lưu", "Cơ cấu 3 cấp ban đầu", "2026-06-07 16:10"],
+  ["v10", "Đã lưu", "Gộp Level 2 miền Trung", "2026-06-05 09:40"]
 ];
 
 const org = [
@@ -837,6 +919,11 @@ function modal() {
     mappingPreview: "Preview mapping dữ liệu",
     dynamicDbDesign: "Thiết kế DB/API cây động",
     rollbackPlan: "Rollback và kiểm soát rủi ro",
+    orgWizard: "Chèn cấp tổ chức",
+    splitDepartment: "Tách phòng ban",
+    mergeDepartment: "Gộp phòng ban",
+    moveUnit: "Chuyển đơn vị",
+    restoreVersion: "Khôi phục phiên bản cơ cấu",
     directorateForm: "Thêm đơn vị chỉ đạo nghiệp vụ",
     departmentForm: "Thêm phòng nghiệp vụ",
     wardUnitForm: "Thêm đơn vị cấp xã",
@@ -876,6 +963,11 @@ function modalBody(type, payload) {
   if (type === "mappingPreview") return mappingPreview();
   if (type === "dynamicDbDesign") return dynamicDbApiDesign();
   if (type === "rollbackPlan") return rollbackPlan();
+  if (type === "orgWizard") return orgRestructureWizard();
+  if (type === "splitDepartment") return orgOperationForm("Tách phòng ban", "Chọn đơn vị nguồn, khai báo đơn vị mới và phân bổ cán bộ/thiết bị/chuyên án sang nhánh mới.");
+  if (type === "mergeDepartment") return orgOperationForm("Gộp phòng ban", "Chọn hai hoặc nhiều đơn vị, chọn đơn vị đích, preview dữ liệu hợp nhất và xác nhận.");
+  if (type === "moveUnit") return orgOperationForm("Chuyển đơn vị", "Kéo thả hoặc chọn đơn vị nguồn, chọn parent mới, hệ thống chỉ đổi quan hệ cha-con.");
+  if (type === "restoreVersion") return orgVersionRestoreModal();
   if (type === "departmentForm") return departmentForm(payload);
   if (type === "wardUnitForm") return wardUnitForm(payload);
   if (type === "unitTypeForm") return unitTypeForm(payload);
@@ -1059,6 +1151,174 @@ function roleForm(role) {
 function roleDetail(role) {
   const profile = roleProfiles.find((item) => item.name === role) || roleProfiles[0];
   return `<div class="list"><div class="list-item"><strong>${profile.name}</strong>${profile.scope}<br>${profile.users} tài khoản đang sử dụng • ${profile.enabled}/${totalPermissionCount()} chức năng được cấp</div>${permissionMatrix()}<div class="toolbar"><button class="btn primary" onclick="state.modal={type:'roleForm',payload:{role:'${profile.name}'}}; render()">Cấu hình quyền</button><button class="btn danger" onclick="notify('Đã mô phỏng xóa vai trò ${profile.name}')">Xóa vai trò</button></div></div>`;
+}
+
+function orgView() {
+  return layout("Dynamic Organization Structure", "Prototype Enterprise SaaS cho cơ cấu tổ chức không giới hạn cấp và tái cấu trúc không mất dữ liệu", `
+    <div class="org-saas">
+      <aside class="org-saas-nav">
+        ${orgDesignerTools.map(([id, label]) => `<button class="${state.orgTool === id ? "active" : ""}" onclick="state.orgTool='${id}'; render()">${label}</button>`).join("")}
+      </aside>
+      <section class="org-saas-main">${orgToolView()}</section>
+    </div>
+  `);
+}
+
+function orgToolView() {
+  const views = {
+    dashboard: orgDashboard,
+    tree: orgTreeScreen,
+    designer: orgDesigner,
+    levels: orgLevelManagement,
+    wizard: orgWizardScreen,
+    mapping: orgMappingScreen,
+    validation: orgValidationScreen,
+    preview: orgPreviewScreen,
+    impact: orgImpactScreen,
+    history: orgHistoryScreen,
+    restore: orgRestoreScreen
+  };
+  return (views[state.orgTool] || orgDashboard)();
+}
+
+function orgDashboard() {
+  const stats = [
+    ["Cấp tổ chức", enterpriseLevels.length, "Không giới hạn, quản lý bằng template"],
+    ["Đơn vị", 12, "Bao gồm đơn vị hiện tại và đơn vị trung gian mới"],
+    ["Cán bộ", 126, "Giữ nguyên assignment khi tái cấu trúc"],
+    ["Thiết bị", 356, "Không ngắt tracking khi đổi parent"],
+    ["Chuyên án", 42, "Giữ owning_unit và participant_units"],
+    ["Phiên bản", 12, "Có thể restore phiên bản trước"]
+  ];
+  return `<div class="org-page">
+    <div class="org-hero">
+      <div><h2>Organization Restructuring Workspace</h2><p>Chèn cấp mới giữa bất kỳ cặp Parent Level - Child Level, mapping đơn vị con bằng drag & drop, preview và commit bằng transaction.</p></div>
+      <div class="toolbar"><button class="btn primary" onclick="state.orgTool='wizard'; render()">Chèn cấp tổ chức</button><button class="btn" onclick="state.orgTool='preview'; render()">Preview Before/After</button></div>
+    </div>
+    <div class="grid cols-3">${stats.map(([label, value, hint]) => `<div class="kpi"><span>${label}</span><strong>${value}</strong><small>${hint}</small></div>`).join("")}</div>
+    <div class="grid cols-2" style="margin-top:14px"><div class="panel"><div class="panel-head"><h2>Cây hiện tại</h2></div><div class="panel-body">${orgTreeMarkup(orgScenario, [])}</div></div><div class="panel"><div class="panel-head"><h2>Luồng tái cấu trúc</h2></div><div class="panel-body">${orgStepRail()}</div></div></div>
+  </div>`;
+}
+
+function orgTreeScreen() {
+  return `<div class="org-page"><div class="panel"><div class="panel-head"><h2>Organization Tree</h2><div class="toolbar"><button class="btn" onclick="openModal('moveUnit')">Drag & Drop đơn vị</button><button class="btn primary" onclick="state.orgTool='wizard'; render()">Chèn cấp</button></div></div><div class="panel-body org-tree-browser">${orgTreeMarkup(orgScenario, [])}</div></div></div>`;
+}
+
+function orgTreeMarkup(node, path) {
+  const nextPath = [...path, node.name];
+  const children = node.children || [];
+  return `<div class="org-unit-node">
+    <div class="org-unit-row" draggable="true" ondragstart="state.draggedUnit='${node.name}'">
+      <button class="tree-toggle" ${children.length ? `onclick="toggleOrgNode('${node.name}')"` : "disabled"}>${children.length ? (state.orgExpanded[node.name] === false ? ">" : "v") : ""}</button>
+      <div class="org-unit-main">
+        <strong>${node.name}</strong><span>${node.level}</span>
+        <small>${nextPath.join(" / ")}</small>
+      </div>
+      <div class="org-unit-metrics"><span>${children.length} con</span><span>${node.staff} cán bộ</span><span>${node.devices} thiết bị</span><span>${node.cases} chuyên án</span></div>
+    </div>
+    <div class="org-unit-children ${state.orgExpanded[node.name] === false ? "" : "open"}">${children.map((child) => orgTreeMarkup(child, nextPath)).join("")}</div>
+  </div>`;
+}
+
+function orgDesigner() {
+  return `<div class="org-page">
+    <div class="panel"><div class="panel-head"><h2>Organization Designer</h2><div class="toolbar"><button class="btn" onclick="openModal('splitDepartment')">Tách phòng ban</button><button class="btn" onclick="openModal('mergeDepartment')">Gộp phòng ban</button><button class="btn" onclick="openModal('moveUnit')">Chuyển đơn vị</button></div></div>
+    <div class="panel-body designer-canvas"><div class="designer-lane">${enterpriseLevels.map((level) => `<div class="designer-level"><span>${level.name}</span><strong>${level.units} units</strong><button class="btn" onclick="state.orgTool='levels'; render()">Sửa cấp</button></div>`).join("")}</div><div class="designer-note">Kéo thả để điều chỉnh thứ tự cấp. Chèn cấp mới sẽ tạo plan, không thay đổi dữ liệu cho đến khi commit.</div></div></div>
+  </div>`;
+}
+
+function orgLevelManagement() {
+  return `<div class="org-page"><div class="panel"><div class="panel-head"><h2>Level Management</h2><button class="btn primary" onclick="openModal('orgWizard')">Tạo cấp mới</button></div><div class="panel-body"><table><thead><tr><th>Thứ tự</th><th>Tên cấp</th><th>Mô tả</th><th>Đơn vị</th><th>Thao tác</th></tr></thead><tbody>${enterpriseLevels.map((level, index) => `<tr><td>${index + 1}</td><td><strong>${level.name}</strong></td><td>${level.description}</td><td>${level.units}</td><td class="toolbar"><button class="btn">Đổi tên</button><button class="btn">Sắp xếp</button><button class="btn danger">Xóa</button></td></tr>`).join("")}</tbody></table></div></div></div>`;
+}
+
+function orgWizardScreen() {
+  return `<div class="org-page"><div class="wizard-shell"><div>${orgStepRail()}</div><div class="panel"><div class="panel-head"><h2>Bước ${state.orgWizardStep}: ${restructureSteps[state.orgWizardStep - 1] || "Xác nhận"}</h2><div class="toolbar"><button class="btn" onclick="state.orgWizardStep=Math.max(1,state.orgWizardStep-1); render()">Trước</button><button class="btn primary" onclick="state.orgWizardStep=Math.min(10,state.orgWizardStep+1); render()">Tiếp</button></div></div><div class="panel-body">${orgWizardStepBody()}</div></div></div></div>`;
+}
+
+function orgStepRail() {
+  const steps = ["Chọn Parent/Child Level", "Nhập cấp mới", "Chọn phạm vi", "Tạo đơn vị trung gian", "Mapping Drag & Drop", "Validation", "Preview Before/After", "Impact Analysis", "Xác nhận", "Audit Log"];
+  return `<div class="wizard-steps-mini">${steps.map((step, index) => `<button class="${state.orgWizardStep === index + 1 ? "current" : index + 1 < state.orgWizardStep ? "done" : ""}" onclick="state.orgWizardStep=${index + 1}; state.orgTool='wizard'; render()"><b>${index + 1}</b><span>${step}</span></button>`).join("")}</div>`;
+}
+
+function orgWizardStepBody() {
+  if (state.orgWizardStep === 1) return `<div class="form-grid"><div class="field"><label>Parent Level</label><select class="form-control" onchange="state.orgInsertParent=this.value">${enterpriseLevels.map((l) => `<option ${l.name === state.orgInsertParent ? "selected" : ""}>${l.name}</option>`).join("")}</select></div><div class="field"><label>Child Level</label><select class="form-control" onchange="state.orgInsertChild=this.value">${enterpriseLevels.map((l) => `<option ${l.name === state.orgInsertChild ? "selected" : ""}>${l.name}</option>`).join("")}</select></div><div class="field full"><span class="tag info">Có thể chọn bất kỳ cặp cấp cha-con đang tồn tại.</span></div></div>`;
+  if (state.orgWizardStep === 2) return `<div class="form-grid"><div class="field"><label>Tên cấp mới</label><input class="form-control" value="${state.orgNewLevelName}" oninput="state.orgNewLevelName=this.value"></div><div class="field"><label>Mô tả cấp</label><input class="form-control" value="Nhóm trung gian để gom các đơn vị cấp dưới theo nghiệp vụ"></div></div>`;
+  if (state.orgWizardStep === 3) return `<div class="permission-list">${Object.keys(state.orgScope).map((name) => `<label class="check-tile"><input type="checkbox" ${state.orgScope[name] ? "checked" : ""} onchange="state.orgScope['${name}']=this.checked; render()">${name}</label>`).join("")}</div>`;
+  if (state.orgWizardStep === 4) return orgIntermediateUnits();
+  if (state.orgWizardStep === 5) return orgMappingScreen();
+  if (state.orgWizardStep === 6) return orgValidationScreen();
+  if (state.orgWizardStep === 7) return orgPreviewScreen();
+  if (state.orgWizardStep === 8) return orgImpactScreen();
+  if (state.orgWizardStep === 9) return `<div class="confirm-box"><strong>Sẵn sàng thực hiện</strong><p>Hệ thống chỉ cập nhật quan hệ cha-con giữa các đơn vị. Cán bộ, thiết bị, chuyên án, phân quyền và lịch sử được bảo toàn.</p><button class="btn primary" onclick="notify('Đã commit tái cấu trúc tổ chức theo transaction')">Xác nhận thực hiện</button></div>`;
+  return orgHistoryScreen();
+}
+
+function orgIntermediateUnits() {
+  return `<div class="grid cols-2">${Object.entries(state.orgScope).filter(([, enabled]) => enabled).map(([parent]) => `<div class="list-item"><strong>${parent}</strong><div class="tag info" style="margin-top:8px">${parent === "Level 2A" ? "Cụm A1, Cụm A2" : "Cụm B1, Cụm B2, Cụm B3"}</div></div>`).join("")}</div>`;
+}
+
+function orgMappingScreen() {
+  const assigned = Object.values(state.orgMapping).flat();
+  const all = ["Level 3A1", "Level 3A2", "Level 3A3", "Level 3A4", "Level 3A5", "Level 3B1", "Level 3B2", "Level 3B3"];
+  const unassigned = all.filter((unit) => !assigned.includes(unit));
+  return `<div class="mapping-board">
+    <div class="mapping-pool"><h3>Chưa phân bổ</h3>${unassigned.map(mappingChip).join("") || `<div class="empty-drop">Tất cả đơn vị đã được phân bổ</div>`}</div>
+    <div class="mapping-targets">${Object.keys(state.orgMapping).map((target) => `<div class="mapping-target" ondragover="event.preventDefault()" ondrop="dropOrgUnit('${target}')"><h3>${target}</h3>${state.orgMapping[target].map(mappingChip).join("")}<div class="empty-drop">Thả đơn vị vào đây</div></div>`).join("")}</div>
+  </div>`;
+}
+
+function mappingChip(name) {
+  return `<div class="mapping-chip" draggable="true" ondragstart="state.draggedUnit='${name}'">${name}</div>`;
+}
+
+function dropOrgUnit(target) {
+  const unit = state.draggedUnit;
+  if (!unit) return;
+  Object.keys(state.orgMapping).forEach((key) => {
+    state.orgMapping[key] = state.orgMapping[key].filter((item) => item !== unit);
+  });
+  state.orgMapping[target].push(unit);
+  state.draggedUnit = null;
+  render();
+}
+
+function orgValidationScreen() {
+  const duplicate = [];
+  const empty = Object.entries(state.orgMapping).filter(([, units]) => units.length === 0).map(([name]) => name);
+  return `<div class="validation-grid"><div class="validation-card ok"><strong>Đơn vị chưa phân bổ</strong><span>0</span><p>Tất cả Level 3 đã được mapping.</p></div><div class="validation-card ok"><strong>Phân bổ trùng</strong><span>${duplicate.length}</span><p>Không có đơn vị bị gán nhiều nơi.</p></div><div class="validation-card ${empty.length ? "warning" : "ok"}"><strong>Cụm chưa có con</strong><span>${empty.length}</span><p>${empty.length ? empty.join(", ") : "Tất cả cụm hợp lệ."}</p></div></div>`;
+}
+
+function orgPreviewScreen() {
+  return `<div class="preview-compare"><div class="panel"><div class="panel-head"><h2>Before</h2></div><div class="panel-body">${orgTreeMarkup(orgScenario, [])}</div></div><div class="panel after-animate"><div class="panel-head"><h2>After</h2></div><div class="panel-body">${orgAfterTree()}</div></div></div>`;
+}
+
+function orgAfterTree() {
+  return `<div class="after-tree"><strong>Level 1</strong>${Object.entries(state.orgScope).filter(([, enabled]) => enabled).map(([parent]) => `<div><strong>${parent}</strong>${Object.entries(state.orgMapping).filter(([cluster]) => cluster.includes(parent.endsWith("A") ? "A" : "B")).map(([cluster, units]) => `<div><strong>${cluster}</strong>${units.map((u) => `<span>${u}</span>`).join("")}</div>`).join("")}</div>`).join("")}<div><strong>Level 2C</strong></div></div>`;
+}
+
+function orgImpactScreen() {
+  const impactedUnits = Object.values(state.orgMapping).flat().length + Object.keys(state.orgMapping).length;
+  return `<div class="impact-grid">${[["Cấp bị ảnh hưởng", 2], ["Đơn vị bị ảnh hưởng", impactedUnits], ["Cán bộ", 73], ["Thiết bị", 216], ["Chuyên án", 24], ["Tài khoản", 86]].map(([label, value]) => `<div class="kpi"><span>${label}</span><strong>${value}</strong><small>Được bảo toàn dữ liệu</small></div>`).join("")}<div class="impact-safe"><span>✓ Không mất dữ liệu</span><span>✓ Không mất phân quyền</span><span>✓ Không mất lịch sử hoạt động</span></div></div>`;
+}
+
+function orgHistoryScreen() {
+  return `<div class="panel"><div class="panel-head"><h2>Change History</h2></div><div class="panel-body"><table><thead><tr><th>Version</th><th>Trạng thái</th><th>Thay đổi</th><th>Thời gian</th></tr></thead><tbody>${orgVersions.map((v) => `<tr><td><strong>${v[0]}</strong></td><td>${v[1]}</td><td>${v[2]}</td><td>${v[3]}</td></tr>`).join("")}</tbody></table></div></div>`;
+}
+
+function orgRestoreScreen() {
+  return `<div class="grid cols-3">${orgVersions.map((v) => `<div class="role-card"><div class="role-card-head"><strong>${v[0]}</strong><span class="tag info">${v[1]}</span></div><p>${v[2]}<br>${v[3]}</p><button class="btn primary" onclick="openModal('restoreVersion',{version:'${v[0]}'})">Khôi phục</button></div>`).join("")}</div>`;
+}
+
+function orgRestructureWizard() {
+  return `<div class="list"><div class="list-item"><strong>Chèn cấp tổ chức</strong>Prototype hỗ trợ chọn Parent Level và Child Level bất kỳ, tạo cấp mới, chọn phạm vi, tạo đơn vị trung gian, drag & drop mapping, validate, preview và commit.</div>${orgWizardScreen()}</div>`;
+}
+
+function orgOperationForm(title, desc) {
+  return `<div class="form-grid"><div class="field full"><label>Nghiệp vụ</label><input class="form-control" value="${title}"></div><div class="field full"><label>Mô tả</label><textarea class="form-control" rows="4">${desc}</textarea></div><div class="field"><label>Đơn vị nguồn</label><select class="form-control"><option>Level 2A</option><option>Level 2B</option><option>Level 3A1</option></select></div><div class="field"><label>Đơn vị đích</label><select class="form-control"><option>Level 2B</option><option>Cụm A1</option><option>Cụm B2</option></select></div></div>`;
+}
+
+function orgVersionRestoreModal() {
+  return `<div class="list"><div class="list-item"><strong>Khôi phục phiên bản</strong>Hệ thống tạo restore plan, preview diff, khóa mềm các node liên quan và commit bằng transaction. Dữ liệu nghiệp vụ không bị xóa.</div>${orgRestoreScreen()}</div>`;
 }
 
 function render() {
