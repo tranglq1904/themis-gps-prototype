@@ -676,6 +676,192 @@ th {
   gap: 10px;
 }
 
+.dynamic-org-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 340px;
+  gap: 14px;
+  align-items: start;
+}
+
+.dynamic-tree-panel,
+.dynamic-side-panel,
+.analysis-card {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #ffffff;
+  box-shadow: var(--shadow);
+}
+
+.dynamic-tree-panel,
+.dynamic-side-panel {
+  padding: 14px;
+}
+
+.section-title {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: flex-start;
+  margin-bottom: 12px;
+}
+
+.section-title h3,
+.dynamic-side-panel h3 {
+  margin: 0;
+}
+
+.level-pipeline {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(120px, 1fr));
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.level-chip {
+  min-height: 76px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fbfcfd;
+  padding: 9px;
+  display: grid;
+  gap: 4px;
+}
+
+.level-chip strong {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--primary);
+  color: #ffffff;
+  display: grid;
+  place-items: center;
+}
+
+.level-chip span {
+  font-weight: 800;
+}
+
+.level-chip small {
+  color: var(--muted);
+}
+
+.wizard-steps-mini {
+  display: grid;
+  gap: 8px;
+  margin: 12px 0;
+}
+
+.wizard-steps-mini div {
+  display: grid;
+  grid-template-columns: 28px 1fr;
+  gap: 8px;
+  align-items: start;
+}
+
+.wizard-steps-mini b,
+.wizard-rail b {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: #e6eef2;
+  color: var(--primary);
+  display: grid;
+  place-items: center;
+  font-size: 12px;
+}
+
+.analysis-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 14px;
+}
+
+.analysis-card {
+  min-height: 118px;
+  padding: 12px;
+}
+
+.analysis-card strong {
+  display: block;
+  margin-bottom: 8px;
+}
+
+.analysis-card p {
+  margin: 0;
+  color: var(--muted);
+}
+
+.rule-list,
+.risk-list {
+  display: grid;
+  gap: 10px;
+}
+
+.rule-list div,
+.risk-list div {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fbfcfd;
+  padding: 10px;
+  display: grid;
+  gap: 4px;
+}
+
+.rule-list span,
+.risk-list span {
+  color: var(--muted);
+}
+
+.wizard-demo {
+  display: grid;
+  grid-template-columns: 260px minmax(0, 1fr);
+  gap: 14px;
+}
+
+.wizard-rail {
+  display: grid;
+  gap: 8px;
+}
+
+.wizard-rail div {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 8px;
+  display: grid;
+  grid-template-columns: 28px 1fr;
+  gap: 8px;
+  align-items: start;
+}
+
+.wizard-rail .done b {
+  background: var(--ok);
+  color: #ffffff;
+}
+
+.wizard-rail .current {
+  border-color: var(--primary);
+  background: #f1f8f8;
+}
+
+.wizard-workspace {
+  display: grid;
+  gap: 12px;
+}
+
+.preview-split {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.preview-split div {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fbfcfd;
+  padding: 12px;
+}
+
 .tree-level {
   position: relative;
   display: grid;
@@ -719,6 +905,11 @@ th {
   background: #ffffff;
   box-shadow: var(--shadow);
   padding: 10px;
+}
+
+.tree-row.synthetic {
+  border-left: 5px solid var(--warning);
+  background: #fffdf8;
 }
 
 .tree-row.has-children {
@@ -1347,8 +1538,16 @@ th {
   .grid.cols-2,
   .map-layout,
   .department-board,
-  .org-summary {
+  .org-summary,
+  .dynamic-org-layout,
+  .analysis-grid,
+  .wizard-demo,
+  .preview-split {
     grid-template-columns: 1fr;
+  }
+
+  .level-pipeline {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .map {

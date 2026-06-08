@@ -118,6 +118,76 @@ const orgCatalog = [
   { type: "Đơn vị cấp cơ sở", level: "Cấp xã", name: "Tổ giám sát xã Củ Chi", directorate: "Cục Kỹ thuật nghiệp vụ", province: "TP Hồ Chí Minh", department: "Phòng Quản lý chuyên án", ward: "Xã Củ Chi", manager: "Lê Thu Hà", accounts: ["CB004"] }
 ];
 
+const dynamicOrgLevels = [
+  { order: 1, name: "Phòng/Ban cấp Cục", code: "CUC", required: true, dataScope: "root-descendants" },
+  { order: 2, name: "Khu vực", code: "REGION", required: false, dataScope: "descendants" },
+  { order: 3, name: "Phòng/Ban cấp Tỉnh", code: "TINH", required: true, dataScope: "descendants" },
+  { order: 4, name: "Tổ công tác", code: "TASK_FORCE", required: false, dataScope: "assigned-subtree" },
+  { order: 5, name: "Phòng/Ban cấp Xã", code: "XA", required: true, dataScope: "own-and-children" }
+];
+
+const restructureSteps = [
+  "Chọn vị trí cần chèn cấp mới",
+  "Khai báo tên cấp, mã cấp và thứ tự",
+  "Tạo các đơn vị thuộc cấp mới",
+  "Mapping đơn vị hiện tại sang đơn vị mới",
+  "Mapping phòng ban con sang đơn vị mới",
+  "Preview trước và sau thay đổi",
+  "Xác nhận thực hiện theo transaction",
+  "Ghi Audit Log và phát sự kiện đồng bộ quyền"
+];
+
+const dynamicFunctionList = [
+  ["Level Template", "Tạo/sửa/xóa cấp tổ chức, đổi tên cấp, thay đổi thứ tự cấp."],
+  ["Organization Unit", "Tạo node tổ chức, chọn parent, quản lý cán bộ, thiết bị, chuyên án, khu vực."],
+  ["Restructure Wizard", "Chèn cấp mới, mapping dữ liệu, preview, xác nhận và audit."],
+  ["Merge/Delete Level", "Hợp nhất hoặc xóa cấp khi không còn dữ liệu treo."],
+  ["Tree Explorer", "Hiển thị cây phân cấp, tìm kiếm, lọc theo cấp, mở/thu node."],
+  ["Inheritance Engine", "Tính phạm vi dữ liệu theo ancestor/descendant và quyền RBAC."],
+  ["Rollback & Audit", "Snapshot, transaction, versioning và phục hồi khi tái cấu trúc lỗi."]
+];
+
+const inheritanceRules = [
+  ["Dữ liệu", "Đơn vị cấp trên xem dữ liệu của toàn bộ descendants nếu vai trò có quyền theo cây. Đơn vị ngang cấp không thấy nhau nếu không có data sharing."],
+  ["Cán bộ", "Cán bộ gắn trực tiếp vào một node. Khi chèn cấp mới, cán bộ giữ node hiện tại; quyền phạm vi được tính lại theo ancestors mới."],
+  ["Thiết bị", "Thiết bị thuộc owner_unit_id và có thể gán thêm case_id. Khi merge node, owner_unit_id chuyển sang node đích theo mapping."],
+  ["Chuyên án", "Chuyên án có owning_unit_id và participant_units. Cấp trên kế thừa quyền xem; quyền sửa/điều phối phụ thuộc vai trò trong chuyên án."],
+  ["Khu vực giám sát", "Khu vực thuộc unit_id hoặc case_id. Khi tái cấu trúc, scope được tính lại theo unit closure table."],
+  ["Phân quyền", "RBAC = role permission + data scope. Data scope lấy từ org_closure, policy override và share grant."]
+];
+
+const dbDesign = [
+  ["org_level_template", "id, tenant_id, name, code, sort_order, is_active, created_by"],
+  ["org_unit", "id, tenant_id, level_template_id, parent_id, name, code, status, path, version"],
+  ["org_closure", "ancestor_id, descendant_id, depth, valid_from, valid_to"],
+  ["org_restructure_plan", "id, type, status, draft_payload, preview_diff, created_by"],
+  ["org_restructure_mapping", "plan_id, source_unit_id, target_unit_id, mapping_type"],
+  ["staff_assignment", "staff_id, org_unit_id, position_type, valid_from, valid_to"],
+  ["device_assignment", "device_id, org_unit_id, case_id, valid_from, valid_to"],
+  ["rbac_data_scope", "role_id, org_unit_id, scope_type, include_descendants"],
+  ["audit_log", "entity_type, entity_id, action, before_json, after_json, request_id"]
+];
+
+const apiDesign = [
+  ["GET", "/api/org/levels", "Lấy danh sách cấp tổ chức theo thứ tự hiện tại."],
+  ["POST", "/api/org/levels/insert", "Tạo draft chèn cấp mới giữa hai cấp."],
+  ["POST", "/api/org/restructure-plans", "Tạo kế hoạch tái cấu trúc và mapping."],
+  ["POST", "/api/org/restructure-plans/{id}/preview", "Trả cây trước/sau, dữ liệu bị ảnh hưởng, conflict."],
+  ["POST", "/api/org/restructure-plans/{id}/commit", "Thực thi transaction, rebuild closure table, ghi audit."],
+  ["POST", "/api/org/restructure-plans/{id}/rollback", "Rollback về snapshot/version trước commit."],
+  ["GET", "/api/org/tree?rootId=&depth=", "Lấy cây tổ chức động theo node và độ sâu."],
+  ["GET", "/api/auth/effective-scope", "Tính phạm vi dữ liệu hiệu lực của người dùng hiện tại."]
+];
+
+const dynamicRisks = [
+  ["Mất liên kết dữ liệu", "Bắt buộc mapping 100% node con trước commit; validate orphan node."],
+  ["Sai phạm vi phân quyền", "Recalculate closure table và effective scope trong transaction; chạy policy diff preview."],
+  ["Tái cấu trúc đang có chuyên án hoạt động", "Khóa mềm node liên quan, cho phép commit ngoài giờ hoặc theo batch."],
+  ["Thiết bị đang online bị đổi owner", "Không ngắt tracking; chỉ cập nhật ownership metadata và audit."],
+  ["Rollback một phần", "Dùng plan version, snapshot before_json và idempotency request_id."],
+  ["Hiệu năng cây lớn", "Closure table + materialized path + cache theo tenant/root/version."]
+];
+
 const org = [
   {
     name: "Cục Kỹ thuật nghiệp vụ",
@@ -415,9 +485,9 @@ function areasView() {
 }
 
 function orgView() {
-  return layout("Cơ cấu tổ chức", "Quản lý Đơn vị chỉ đạo nghiệp vụ, Phòng nghiệp vụ cấp tỉnh và Đơn vị cấp cơ sở cấp xã", `
+  return layout("Cơ cấu tổ chức động", "Dynamic Organization Structure: không giới hạn cấp, chèn cấp mới, mapping dữ liệu và kế thừa phân quyền theo cây", `
     <div class="panel">
-      <div class="panel-head"><h2>Sơ đồ cây phân cấp</h2><button class="btn primary" onclick="openModal('unitTypeForm')">Thêm mới cơ cấu</button></div>
+      <div class="panel-head"><h2>Thiết kế nghiệp vụ & kiến trúc giải pháp</h2><div class="toolbar"><button class="btn primary" onclick="openModal('restructureWizard')">Wizard chèn cấp</button><button class="btn" onclick="openModal('dynamicDbDesign')">DB/API</button><button class="btn" onclick="openModal('rollbackPlan')">Rollback</button></div></div>
       <div class="panel-body">${orgStructure()}</div>
     </div>
   `);
@@ -426,8 +496,26 @@ function orgView() {
 function orgStructure() {
   const roots = orgCatalog.filter((item) => item.type === "Đơn vị chỉ đạo nghiệp vụ");
   return `
-    <div class="vertical-org-tree">
-      ${roots.map(orgVerticalRoot).join("")}
+    <div class="dynamic-org-layout">
+      <section class="dynamic-tree-panel">
+        <div class="section-title"><h3>Cây tổ chức động</h3><span class="tag info">Ví dụ đã chèn Khu vực và Tổ công tác</span></div>
+        <div class="level-pipeline">${dynamicOrgLevels.map((level) => `<div class="level-chip"><strong>${level.order}</strong><span>${level.name}</span><small>${level.required ? "Bắt buộc" : "Tùy chọn"}</small></div>`).join("")}</div>
+        <div class="vertical-org-tree">
+          ${roots.map(orgVerticalRoot).join("")}
+        </div>
+      </section>
+      <aside class="dynamic-side-panel">
+        <h3>Wizard tái cấu trúc</h3>
+        <div class="wizard-steps-mini">${restructureSteps.map((step, index) => `<div><b>${index + 1}</b><span>${step}</span></div>`).join("")}</div>
+        <button class="btn primary" onclick="openModal('restructureWizard')">Mở wizard demo</button>
+      </aside>
+    </div>
+    <div class="analysis-grid">
+      ${dynamicFunctionList.map(([name, desc]) => `<div class="analysis-card"><strong>${name}</strong><p>${desc}</p></div>`).join("")}
+    </div>
+    <div class="grid cols-2" style="margin-top:14px">
+      <section class="panel"><div class="panel-head"><h2>Quy tắc kế thừa</h2></div><div class="panel-body rule-list">${inheritanceRules.map(([name, desc]) => `<div><strong>${name}</strong><span>${desc}</span></div>`).join("")}</div></section>
+      <section class="panel"><div class="panel-head"><h2>Rủi ro & xử lý dữ liệu</h2></div><div class="panel-body risk-list">${dynamicRisks.map(([risk, action]) => `<div><strong>${risk}</strong><span>${action}</span></div>`).join("")}</div></section>
     </div>
   `;
 }
@@ -444,14 +532,40 @@ function orgVerticalRoot(root) {
     <div class="tree-children ${state.orgExpanded[root.name] ? "open" : ""}">
       ${departmentsInRoot.map((department) => {
         const wardUnits = orgCatalog.filter((item) => item.type === "Đơn vị cấp cơ sở" && item.directorate === department.directorate && item.province === department.province && item.department === department.department);
+        const regionName = department.province === "Hà Nội" ? "Khu vực miền Bắc" : department.province === "Đà Nẵng" ? "Khu vực miền Trung" : "Khu vực miền Nam";
+        const taskForceName = `Tổ công tác ${department.province}`;
         return `<div class="tree-level">
-          ${orgVerticalRow(department, `Cấp tỉnh • ${department.province}`, wardUnits.length)}
-          <div class="tree-children ${state.orgExpanded[department.name] ? "open" : ""}">
-            ${wardUnits.map((wardUnit) => `<div class="tree-level leaf">${orgVerticalRow(wardUnit, `Cấp xã • ${wardUnit.ward}`, 0)}</div>`).join("")}
+          ${orgSyntheticRow(regionName, `Khu vực • ${department.province}`, department.name, 1)}
+          <div class="tree-children open">
+            <div class="tree-level">
+              ${orgVerticalRow(department, `Cấp tỉnh • ${department.province}`, wardUnits.length)}
+              <div class="tree-children ${state.orgExpanded[department.name] ? "open" : ""}">
+                <div class="tree-level">
+                  ${orgSyntheticRow(taskForceName, "Tổ công tác", department.name + "-task", wardUnits.length)}
+                  <div class="tree-children open">
+                    ${wardUnits.map((wardUnit) => `<div class="tree-level leaf">${orgVerticalRow(wardUnit, `Cấp xã • ${wardUnit.ward}`, 0)}</div>`).join("")}
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         </div>`;
       }).join("")}
     </div>
+  </div>`;
+}
+
+function orgSyntheticRow(name, levelLabel, key, childCount) {
+  return `<div class="tree-row synthetic">
+    <button class="tree-toggle" disabled></button>
+    <div class="tree-main">
+      <span class="tag warning">${levelLabel}</span>
+      <strong>${name}</strong>
+      <small>Cấp được chèn bằng Dynamic Organization Wizard</small>
+      <div class="tree-meta"><span>Mapping từ ${key}</span><span>${childCount} cấp dưới</span></div>
+    </div>
+    <div class="tree-count">${childCount} cấp dưới</div>
+    <div class="tree-actions"><button class="btn" onclick="openModal('mappingPreview')">Mapping</button></div>
   </div>`;
 }
 
@@ -719,6 +833,10 @@ function modal() {
     areaForm: "Tạo khu vực giám sát",
     unitForm: "Tạo/Cập nhật đơn vị",
     unitTypeForm: "Thêm mới cơ cấu tổ chức",
+    restructureWizard: "Wizard tái cấu trúc tổ chức",
+    mappingPreview: "Preview mapping dữ liệu",
+    dynamicDbDesign: "Thiết kế DB/API cây động",
+    rollbackPlan: "Rollback và kiểm soát rủi ro",
     directorateForm: "Thêm đơn vị chỉ đạo nghiệp vụ",
     departmentForm: "Thêm phòng nghiệp vụ",
     wardUnitForm: "Thêm đơn vị cấp xã",
@@ -754,6 +872,10 @@ function modalBody(type, payload) {
   if (type === "history") return `<div class="list"><div class="list-item"><strong>${payload.id}</strong>09:00 Cầu Nhật Tân → 09:30 Đông Anh → 10:00 Khu vực A12</div><button class="btn primary" onclick="state.mapLayer='history'; closeModal(); setView('map')">Hiển thị trên bản đồ</button></div>`;
   if (type === "deviceControl") return `<div class="form-grid"><div class="field full"><label>Thiết bị</label><input class="form-control" value="${payload.id || state.selectedDevice}"></div><div class="field"><label>Tần suất gửi vị trí</label><select class="form-control"><option>10 giây/lần</option><option>30 giây/lần</option><option>1 phút/lần</option></select></div><div class="field"><label>Chế độ</label><select class="form-control"><option>Theo dõi liên tục</option><option>Tiết kiệm pin</option><option>Ngủ tạm thời</option></select></div><div class="field full"><label>Lệnh nhanh</label><div class="toolbar"><button class="btn">Ping</button><button class="btn">Cập nhật firmware</button><button class="btn danger">Ngắt kết nối</button></div></div></div>`;
   if (type === "directorateForm") return directorateForm(payload);
+  if (type === "restructureWizard") return restructureWizard();
+  if (type === "mappingPreview") return mappingPreview();
+  if (type === "dynamicDbDesign") return dynamicDbApiDesign();
+  if (type === "rollbackPlan") return rollbackPlan();
   if (type === "departmentForm") return departmentForm(payload);
   if (type === "wardUnitForm") return wardUnitForm(payload);
   if (type === "unitTypeForm") return unitTypeForm(payload);
@@ -781,6 +903,50 @@ function genericForm(type, payload) {
   if (type === "importCsv") return `<div class="list"><div class="list-item"><strong>CSV mẫu</strong>device_id, imei, serial, unit, status</div><input class="form-control" type="file"><div class="tag info">Mô phỏng kiểm tra trùng IMEI và nhập kho</div></div>`;
   if (type === "caseConfig") return `<div class="form-grid">${common}<div class="field full"><label>Cấu hình cảnh báo</label><div class="permission-grid">${["Online", "Offline", "Pin yếu", "Vào khu vực", "Ra khỏi khu vực", "Tiếp cận mục tiêu"].map((p) => `<label class="check-tile"><input type="checkbox" checked>${p}</label>`).join("")}</div></div></div>`;
   return `<div class="form-grid">${common}</div>`;
+}
+
+function restructureWizard() {
+  return `<div class="wizard-demo">
+    <div class="wizard-rail">${restructureSteps.map((step, index) => `<div class="${index < 5 ? "done" : index === 5 ? "current" : ""}"><b>${index + 1}</b><span>${step}</span></div>`).join("")}</div>
+    <div class="wizard-workspace">
+      <div class="form-grid">
+        <div class="field"><label>Vị trí chèn cấp mới</label><select class="form-control"><option>Giữa Phòng/Ban cấp Cục và Phòng/Ban cấp Tỉnh</option><option>Giữa Phòng/Ban cấp Tỉnh và Phòng/Ban cấp Xã</option></select></div>
+        <div class="field"><label>Tên cấp mới</label><input class="form-control" value="Khu vực"></div>
+        <div class="field"><label>Mã cấp</label><input class="form-control" value="REGION"></div>
+        <div class="field"><label>Thứ tự mới</label><input class="form-control" value="2"></div>
+        <div class="field full"><label>Đơn vị thuộc cấp mới</label><textarea class="form-control" rows="3">Khu vực miền Bắc -> Phòng Theo dõi thiết bị Hà Nội
+Khu vực miền Trung -> Phòng Phân tích dữ liệu Đà Nẵng
+Khu vực miền Nam -> Phòng Quản lý chuyên án TP Hồ Chí Minh</textarea></div>
+      </div>
+      <div class="preview-split">
+        <div><strong>Trước thay đổi</strong><p>Cục -> Tỉnh -> Xã</p></div>
+        <div><strong>Sau thay đổi</strong><p>Cục -> Khu vực -> Tỉnh -> Tổ công tác -> Xã</p></div>
+      </div>
+    </div>
+  </div>`;
+}
+
+function mappingPreview() {
+  return `<div class="grid cols-2">
+    <div class="list-item"><strong>Mapping đơn vị hiện tại sang cấp mới</strong><table><tbody><tr><td>Phòng Theo dõi thiết bị Hà Nội</td><td>Khu vực miền Bắc</td></tr><tr><td>Phòng Phân tích dữ liệu Đà Nẵng</td><td>Khu vực miền Trung</td></tr><tr><td>Phòng Quản lý chuyên án TP Hồ Chí Minh</td><td>Khu vực miền Nam</td></tr></tbody></table></div>
+    <div class="list-item"><strong>Mapping dữ liệu con</strong><table><tbody><tr><td>Cán bộ</td><td>Giữ node hiện tại, tính lại ancestors</td></tr><tr><td>Thiết bị</td><td>Giữ owner_unit_id, cập nhật scope</td></tr><tr><td>Chuyên án</td><td>Giữ owning_unit_id và participant_units</td></tr><tr><td>Khu vực giám sát</td><td>Tính lại theo org_closure</td></tr></tbody></table></div>
+  </div>`;
+}
+
+function dynamicDbApiDesign() {
+  return `<div class="grid cols-2">
+    <div class="list"><h3>Database</h3>${dbDesign.map(([table, desc]) => `<div class="list-item"><strong>${table}</strong><span>${desc}</span></div>`).join("")}</div>
+    <div class="list"><h3>API</h3>${apiDesign.map(([method, path, desc]) => `<div class="list-item"><strong>${method} ${path}</strong><span>${desc}</span></div>`).join("")}</div>
+  </div>`;
+}
+
+function rollbackPlan() {
+  return `<div class="list">
+    <div class="list-item"><strong>Cơ chế rollback</strong>Toàn bộ tái cấu trúc chạy bằng restructure_plan version. Trước commit lưu snapshot before_json, rebuild org_closure trong transaction, nếu lỗi thì rollback transaction. Nếu lỗi sau commit, dùng rollback plan để khôi phục parent_id, closure table, assignment và RBAC scope về version trước.</div>
+    <div class="list-item"><strong>Idempotency</strong>Mỗi lệnh commit dùng request_id để tránh chạy trùng khi retry.</div>
+    <div class="list-item"><strong>Audit Log</strong>Ghi actor, thời gian, before/after JSON, số node ảnh hưởng, mapping và trạng thái commit/rollback.</div>
+    <div class="risk-list">${dynamicRisks.map(([risk, action]) => `<div><strong>${risk}</strong><span>${action}</span></div>`).join("")}</div>
+  </div>`;
 }
 
 function selectOptions(items, selected = "") {
